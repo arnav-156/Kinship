@@ -22,8 +22,8 @@ describe("OpenAPI document generation", () => {
 
     expect(document.openapi).toMatch(/^3\./);
     expect(operationCount).toBeGreaterThanOrEqual(75);
-    expect(requestBodyCount).toBe(36);
-    expect(Object.keys(document.components?.schemas ?? {})).toHaveLength(35);
+    expect(requestBodyCount).toBe(37);
+    expect(Object.keys(document.components?.schemas ?? {})).toHaveLength(36);
     expect(document.paths).toMatchObject({
       "/v1/analyze-url": { post: {} },
       "/v1/relationship-briefs": { post: {} },
