@@ -1,0 +1,2176 @@
+{
+  "components": {
+    "schemas": {
+      "AcceptWorkspaceInvitationDto": {
+        "properties": {
+          "displayName": {
+            "maxLength": 120,
+            "minLength": 2,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 12,
+            "type": "string"
+          }
+        },
+        "required": ["displayName", "password"],
+        "type": "object"
+      },
+      "AnalyzeUrlDto": {
+        "properties": {
+          "goal": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sourceType": {
+            "enum": [
+              "company_website",
+              "crossref",
+              "csv_import",
+              "github",
+              "manual_linkedin_context",
+              "orcid",
+              "semantic_scholar",
+              "user_url"
+            ],
+            "type": "string"
+          },
+          "subjectName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "url": {
+            "format": "url",
+            "type": "string"
+          },
+          "workspaceId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["workspaceId", "url"],
+        "type": "object"
+      },
+      "CreateConnectorAccountDto": {
+        "properties": {
+          "displayName": {
+            "maxLength": 120,
+            "minLength": 2,
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "company_website",
+              "crossref",
+              "github",
+              "manual_linkedin_context",
+              "orcid",
+              "semantic_scholar",
+              "user_url"
+            ],
+            "type": "string"
+          }
+        },
+        "required": ["provider"],
+        "type": "object"
+      },
+      "CreateDraftMessageDto": {
+        "properties": {
+          "variant": {
+            "enum": ["concise", "warm_professional", "evidence_heavy"],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreateProspectListDto": {
+        "properties": {
+          "description": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["name"],
+        "type": "object"
+      },
+      "CreateProspectListMemberDto": {
+        "properties": {
+          "confidenceScore": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "entityId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "fitScore": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "notes": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "relationshipStage": {
+            "enum": ["unknown", "prospect", "warm", "active", "dormant", "customer", "partner"],
+            "type": "string"
+          }
+        },
+        "required": ["entityId"],
+        "type": "object"
+      },
+      "CreateRelationshipBriefDto": {
+        "properties": {
+          "goal": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "subjectEntityId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "workspaceId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["workspaceId", "subjectEntityId", "goal"],
+        "type": "object"
+      },
+      "CreateRelationshipNoteDto": {
+        "properties": {
+          "body": {
+            "maxLength": 5000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["body"],
+        "type": "object"
+      },
+      "CreateSuppressionEntryDto": {
+        "properties": {
+          "channelType": {
+            "enum": ["email", "linkedin_context", "phone", "meeting", "unknown"],
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "source": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "workspaceId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["channelType", "value", "reason"],
+        "type": "object"
+      },
+      "CreateWorkspaceDto": {
+        "properties": {
+          "name": {
+            "maxLength": 120,
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "required": ["name"],
+        "type": "object"
+      },
+      "DeleteAccountDto": {
+        "properties": {
+          "confirmation": {
+            "enum": ["DELETE MY ACCOUNT"],
+            "type": "string"
+          },
+          "currentPassword": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["currentPassword", "confirmation"],
+        "type": "object"
+      },
+      "EvaluateComplianceDto": {
+        "properties": {
+          "channelType": {
+            "enum": ["email", "linkedin_context", "phone", "meeting", "unknown"],
+            "type": "string"
+          },
+          "entityId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sourceType": {
+            "enum": [
+              "company_website",
+              "crossref",
+              "csv_import",
+              "crm_import",
+              "github",
+              "manual_linkedin_context",
+              "orcid",
+              "semantic_scholar",
+              "user_url"
+            ],
+            "type": "string"
+          },
+          "workspaceId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["workspaceId", "entityId", "channelType"],
+        "type": "object"
+      },
+      "GetAiFeedbackDto": {
+        "properties": {
+          "targetId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "targetType": {
+            "enum": ["brief", "draft"],
+            "type": "string"
+          }
+        },
+        "required": ["targetType", "targetId"],
+        "type": "object"
+      },
+      "ImportProspectListDto": {
+        "properties": {
+          "csvText": {
+            "maxLength": 1000000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sourceName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["csvText"],
+        "type": "object"
+      },
+      "IngestEvidenceDto": {
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "entityId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sourceIdentifier": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sourceType": {
+            "enum": [
+              "company_website",
+              "crossref",
+              "csv_import",
+              "github",
+              "manual_linkedin_context",
+              "orcid",
+              "semantic_scholar",
+              "user_url"
+            ],
+            "type": "string"
+          },
+          "subjectName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "workspaceId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["workspaceId", "sourceType", "sourceIdentifier"],
+        "type": "object"
+      },
+      "InviteWorkspaceMemberDto": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "maxLength": 320,
+            "type": "string"
+          },
+          "role": {
+            "enum": ["owner", "admin", "manager", "member", "viewer", "compliance_reviewer"],
+            "type": "string"
+          }
+        },
+        "required": ["email", "role"],
+        "type": "object"
+      },
+      "LoginDto": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "password": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "tenantSlug": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["email", "password"],
+        "type": "object"
+      },
+      "RecordRelationshipOutcomeDto": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "follow_up_scheduled",
+              "introduction_made",
+              "meeting_held",
+              "not_interested",
+              "opportunity_created",
+              "other",
+              "reply_received"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["kind", "summary"],
+        "type": "object"
+      },
+      "RegisterDto": {
+        "properties": {
+          "displayName": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "password": {
+            "minLength": 12,
+            "type": "string"
+          },
+          "region": {
+            "maxLength": 20,
+            "minLength": 2,
+            "type": "string"
+          },
+          "tenantName": {
+            "maxLength": 120,
+            "minLength": 2,
+            "type": "string"
+          },
+          "workspaceName": {
+            "maxLength": 120,
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "required": ["email", "password", "tenantName", "workspaceName"],
+        "type": "object"
+      },
+      "RestoreDraftVersionDto": {
+        "properties": {
+          "expectedUpdatedAt": {
+            "oneOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "format": "date-time",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": ["expectedUpdatedAt"],
+        "type": "object"
+      },
+      "RewriteDraftMessageDto": {
+        "properties": {
+          "expectedUpdatedAt": {
+            "oneOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "format": "date-time",
+                "type": "string"
+              }
+            ]
+          },
+          "instruction": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "variant": {
+            "enum": ["concise", "warm_professional", "evidence_heavy"],
+            "type": "string"
+          }
+        },
+        "required": ["expectedUpdatedAt"],
+        "type": "object"
+      },
+      "SearchEvidenceDto": {
+        "properties": {
+          "limit": {
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "query": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sourceTypes": {
+            "items": {
+              "enum": [
+                "company_website",
+                "crossref",
+                "csv_import",
+                "github",
+                "manual_linkedin_context",
+                "orcid",
+                "semantic_scholar",
+                "user_url"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "workspaceId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["workspaceId", "query"],
+        "type": "object"
+      },
+      "SearchSimilarPeopleDto": {
+        "properties": {
+          "employerName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "entityId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "fullName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "githubLogin": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "limit": {
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "linkedinUrl": {
+            "format": "url",
+            "type": "string"
+          },
+          "location": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "orcidId": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "primaryEmailHash": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "workspaceId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["workspaceId"],
+        "type": "object"
+      },
+      "SubmitAiFeedbackDto": {
+        "properties": {
+          "comment": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "rating": {
+            "enum": ["helpful", "not_helpful"],
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "targetId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "targetType": {
+            "enum": ["brief", "draft"],
+            "type": "string"
+          }
+        },
+        "required": ["rating", "reason", "targetType", "targetId"],
+        "type": "object"
+      },
+      "SyncConnectorDto": {
+        "properties": {
+          "entityId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sourceIdentifier": {
+            "maxLength": 2048,
+            "minLength": 1,
+            "type": "string"
+          },
+          "subjectName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["sourceIdentifier"],
+        "type": "object"
+      },
+      "UpdateConnectorAccountDto": {
+        "properties": {
+          "displayName": {
+            "maxLength": 120,
+            "minLength": 2,
+            "type": "string"
+          },
+          "refreshEnabled": {
+            "type": "boolean"
+          },
+          "refreshEntityId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "refreshIntervalMinutes": {
+            "maximum": 43200,
+            "minimum": 5,
+            "type": "integer"
+          },
+          "refreshSourceIdentifier": {
+            "maxLength": 2048,
+            "minLength": 1,
+            "type": "string"
+          },
+          "refreshSubjectName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "status": {
+            "enum": ["active", "paused"],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateDraftMessageDto": {
+        "properties": {
+          "body": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "expectedUpdatedAt": {
+            "oneOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "format": "date-time",
+                "type": "string"
+              }
+            ]
+          },
+          "reason": {
+            "enum": ["autosave", "manual_save"],
+            "type": "string"
+          },
+          "status": {
+            "enum": ["archived"],
+            "type": "string"
+          },
+          "tone": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["expectedUpdatedAt"],
+        "type": "object"
+      },
+      "UpdateProspectListDto": {
+        "properties": {
+          "description": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateProspectListMemberDto": {
+        "properties": {
+          "confidenceScore": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "fitScore": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "notes": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "relationshipStage": {
+            "enum": ["unknown", "prospect", "warm", "active", "dormant", "customer", "partner"],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateRelationshipNoteDto": {
+        "properties": {
+          "body": {
+            "maxLength": 5000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["body"],
+        "type": "object"
+      },
+      "UpdateRetentionPolicyDto": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "retentionDays": {
+            "maximum": 3650,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": ["enabled", "retentionDays"],
+        "type": "object"
+      },
+      "UpdateWorkspaceDto": {
+        "properties": {
+          "name": {
+            "maxLength": 120,
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateWorkspaceMemberDto": {
+        "properties": {
+          "role": {
+            "enum": ["owner", "admin", "manager", "member", "viewer", "compliance_reviewer"],
+            "type": "string"
+          }
+        },
+        "required": ["role"],
+        "type": "object"
+      },
+      "UpdateWorkspacePolicyDto": {
+        "properties": {
+          "defaultConsentStatus": {
+            "enum": ["confirmed", "unknown", "withdrawn"],
+            "type": "string"
+          },
+          "defaultPurpose": {
+            "enum": ["relationship_intelligence", "outreach_review"],
+            "type": "string"
+          },
+          "defaultRecipientRegion": {
+            "maxLength": 80,
+            "minLength": 2,
+            "type": "string"
+          },
+          "defaultRecipientType": {
+            "enum": ["professional", "personal", "unknown"],
+            "type": "string"
+          }
+        },
+        "required": [
+          "defaultPurpose",
+          "defaultConsentStatus",
+          "defaultRecipientType",
+          "defaultRecipientRegion"
+        ],
+        "type": "object"
+      },
+      "UpsertContactChannelDto": {
+        "properties": {
+          "channelType": {
+            "enum": ["email", "linkedin_context", "phone", "meeting", "unknown"],
+            "type": "string"
+          },
+          "consentStatus": {
+            "enum": ["confirmed", "unknown", "withdrawn"],
+            "type": "string"
+          },
+          "entityId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "purpose": {
+            "enum": ["relationship_intelligence", "outreach_review"],
+            "type": "string"
+          },
+          "recipientRegion": {
+            "maxLength": 80,
+            "minLength": 2,
+            "type": "string"
+          },
+          "recipientType": {
+            "enum": ["professional", "personal", "unknown"],
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "workspaceId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspaceId",
+          "entityId",
+          "channelType",
+          "value",
+          "consentStatus",
+          "purpose",
+          "recipientType",
+          "recipientRegion"
+        ],
+        "type": "object"
+      },
+      "ValidateDraftMessageDto": {
+        "properties": {
+          "expectedUpdatedAt": {
+            "oneOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "format": "date-time",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": ["expectedUpdatedAt"],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "contact": {},
+    "description": "Authenticated relationship intelligence, evidence, privacy, and administration API.",
+    "title": "Relationship Intelligence API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "Health.index",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Health"]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "Health.health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Health"]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "Health.metrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Health"]
+      }
+    },
+    "/ready": {
+      "get": {
+        "operationId": "Health.ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Health"]
+      }
+    },
+    "/v1/ai-feedback": {
+      "get": {
+        "operationId": "AiFeedback.get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["AiFeedback"]
+      },
+      "post": {
+        "operationId": "AiFeedback.submit",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitAiFeedbackDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["AiFeedback"]
+      }
+    },
+    "/v1/ai/configuration": {
+      "get": {
+        "operationId": "Health.aiConfiguration",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Health"]
+      }
+    },
+    "/v1/analyze-url": {
+      "post": {
+        "operationId": "Evidence.analyzeUrl",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeUrlDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Evidence"]
+      }
+    },
+    "/v1/audit-events": {
+      "get": {
+        "operationId": "Audit.list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Audit"]
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "operationId": "Auth.login",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Auth"]
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "operationId": "Auth.logout",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Auth"]
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "operationId": "Auth.me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Auth"]
+      }
+    },
+    "/v1/auth/register": {
+      "post": {
+        "operationId": "Auth.register",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Auth"]
+      }
+    },
+    "/v1/compliance/contact-channels": {
+      "get": {
+        "operationId": "Compliance.listContactChannels",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Compliance"]
+      },
+      "post": {
+        "operationId": "Compliance.upsertContactChannel",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertContactChannelDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Compliance"]
+      }
+    },
+    "/v1/compliance/evaluate": {
+      "post": {
+        "operationId": "Compliance.evaluate",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluateComplianceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Compliance"]
+      }
+    },
+    "/v1/compliance/suppressions": {
+      "get": {
+        "operationId": "Compliance.listSuppressions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Compliance"]
+      },
+      "post": {
+        "operationId": "Compliance.createSuppression",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSuppressionEntryDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Compliance"]
+      }
+    },
+    "/v1/compliance/suppressions/{id}": {
+      "delete": {
+        "operationId": "Compliance.deleteSuppression",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Compliance"]
+      }
+    },
+    "/v1/drafts/{id}": {
+      "get": {
+        "operationId": "Drafts.get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Drafts"]
+      },
+      "patch": {
+        "operationId": "Drafts.update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDraftMessageDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Drafts"]
+      }
+    },
+    "/v1/drafts/{id}/rewrite": {
+      "post": {
+        "operationId": "Drafts.rewrite",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RewriteDraftMessageDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Drafts"]
+      }
+    },
+    "/v1/drafts/{id}/validate": {
+      "post": {
+        "operationId": "Drafts.validate",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateDraftMessageDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Drafts"]
+      }
+    },
+    "/v1/drafts/{id}/versions": {
+      "get": {
+        "operationId": "Drafts.listVersions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Drafts"]
+      }
+    },
+    "/v1/drafts/{id}/versions/{versionId}/restore": {
+      "post": {
+        "operationId": "Drafts.restoreVersion",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreDraftVersionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Drafts"]
+      }
+    },
+    "/v1/entities/{id}/evidence": {
+      "get": {
+        "operationId": "Evidence.listEntityEvidence",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Evidence"]
+      }
+    },
+    "/v1/entities/{id}/relationship-outcomes": {
+      "post": {
+        "operationId": "Evidence.recordRelationshipOutcome",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordRelationshipOutcomeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Evidence"]
+      }
+    },
+    "/v1/entities/{id}/relationship-timeline": {
+      "get": {
+        "operationId": "Evidence.relationshipTimeline",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Evidence"]
+      }
+    },
+    "/v1/evidence/ingest": {
+      "post": {
+        "operationId": "Evidence.ingest",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngestEvidenceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Evidence"]
+      }
+    },
+    "/v1/evidence/jobs": {
+      "get": {
+        "operationId": "Evidence.listWorkspaceJobs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Evidence"]
+      },
+      "post": {
+        "operationId": "Evidence.queueIngestion",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngestEvidenceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Evidence"]
+      }
+    },
+    "/v1/evidence/jobs/{jobId}": {
+      "get": {
+        "operationId": "Evidence.getWorkspaceJob",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Evidence"]
+      }
+    },
+    "/v1/evidence/jobs/{jobId}/cancel": {
+      "post": {
+        "operationId": "Evidence.cancelWorkspaceJob",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Evidence"]
+      }
+    },
+    "/v1/evidence/jobs/{jobId}/retry": {
+      "post": {
+        "operationId": "Evidence.retryWorkspaceJob",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Evidence"]
+      }
+    },
+    "/v1/invitations/{token}": {
+      "get": {
+        "operationId": "WorkspaceInvitations.get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["WorkspaceInvitations"]
+      }
+    },
+    "/v1/invitations/{token}/accept": {
+      "post": {
+        "operationId": "WorkspaceInvitations.accept",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptWorkspaceInvitationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["WorkspaceInvitations"]
+      }
+    },
+    "/v1/relationship-briefs": {
+      "post": {
+        "operationId": "RelationshipBriefs.create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRelationshipBriefDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["RelationshipBriefs"]
+      }
+    },
+    "/v1/relationship-briefs/{id}": {
+      "get": {
+        "operationId": "RelationshipBriefs.get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["RelationshipBriefs"]
+      }
+    },
+    "/v1/relationship-briefs/{id}/drafts": {
+      "post": {
+        "operationId": "RelationshipBriefs.createDraft",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDraftMessageDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["RelationshipBriefs"]
+      }
+    },
+    "/v1/search/evidence": {
+      "post": {
+        "operationId": "Search.searchEvidence",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchEvidenceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Search"]
+      }
+    },
+    "/v1/search/prospects": {
+      "post": {
+        "operationId": "Search.searchProspects",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchEvidenceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Search"]
+      }
+    },
+    "/v1/search/similar-people": {
+      "post": {
+        "operationId": "Search.searchSimilarPeople",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchSimilarPeopleDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Search"]
+      }
+    },
+    "/v1/users/me/data-exports": {
+      "post": {
+        "operationId": "Privacy.requestExport",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Privacy"]
+      }
+    },
+    "/v1/users/me/data-exports/{requestId}": {
+      "get": {
+        "operationId": "Privacy.exportStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Privacy"]
+      }
+    },
+    "/v1/users/me/data-exports/{requestId}/download": {
+      "get": {
+        "operationId": "Privacy.downloadExport",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Privacy"]
+      }
+    },
+    "/v1/users/me/data-requests": {
+      "get": {
+        "operationId": "Privacy.listRequests",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Privacy"]
+      }
+    },
+    "/v1/users/me/deletion": {
+      "post": {
+        "operationId": "Privacy.requestDeletion",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Privacy"]
+      }
+    },
+    "/v1/workspaces": {
+      "get": {
+        "operationId": "Workspaces.list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Workspaces"]
+      },
+      "post": {
+        "operationId": "Workspaces.create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkspaceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Workspaces"]
+      }
+    },
+    "/v1/workspaces/{id}": {
+      "get": {
+        "operationId": "Workspaces.get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Workspaces"]
+      },
+      "patch": {
+        "operationId": "Workspaces.update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Workspaces"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/admin/connectors": {
+      "get": {
+        "operationId": "Admin.listConnectors",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Admin"]
+      },
+      "post": {
+        "operationId": "Admin.createConnector",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConnectorAccountDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Admin"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/admin/connectors/{connectorId}": {
+      "delete": {
+        "operationId": "Admin.revokeConnector",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Admin"]
+      },
+      "patch": {
+        "operationId": "Admin.updateConnector",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConnectorAccountDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Admin"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/admin/connectors/{connectorId}/sync": {
+      "post": {
+        "operationId": "Admin.syncConnector",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncConnectorDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Admin"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/admin/invitations/{invitationId}": {
+      "delete": {
+        "operationId": "Admin.revokeInvitation",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Admin"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/admin/members": {
+      "get": {
+        "operationId": "Admin.listMembers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Admin"]
+      },
+      "post": {
+        "operationId": "Admin.inviteMember",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteWorkspaceMemberDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Admin"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/admin/members/{membershipId}": {
+      "delete": {
+        "operationId": "Admin.removeMember",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Admin"]
+      },
+      "patch": {
+        "operationId": "Admin.updateMember",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceMemberDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Admin"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/admin/policy": {
+      "get": {
+        "operationId": "Admin.getPolicy",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Admin"]
+      },
+      "put": {
+        "operationId": "Admin.updatePolicy",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspacePolicyDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Admin"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/entities/{entityId}/notes": {
+      "get": {
+        "operationId": "RelationshipNotes.list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["RelationshipNotes"]
+      },
+      "post": {
+        "operationId": "RelationshipNotes.create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRelationshipNoteDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["RelationshipNotes"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/entities/{entityId}/notes/{noteId}": {
+      "delete": {
+        "operationId": "RelationshipNotes.remove",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["RelationshipNotes"]
+      },
+      "patch": {
+        "operationId": "RelationshipNotes.update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRelationshipNoteDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["RelationshipNotes"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/prospect-lists": {
+      "get": {
+        "operationId": "ProspectLists.list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["ProspectLists"]
+      },
+      "post": {
+        "operationId": "ProspectLists.create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProspectListDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["ProspectLists"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/prospect-lists/{listId}": {
+      "delete": {
+        "operationId": "ProspectLists.archive",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["ProspectLists"]
+      },
+      "get": {
+        "operationId": "ProspectLists.get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["ProspectLists"]
+      },
+      "patch": {
+        "operationId": "ProspectLists.update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProspectListDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["ProspectLists"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/prospect-lists/{listId}/import": {
+      "post": {
+        "operationId": "ProspectLists.importCsv",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportProspectListDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["ProspectLists"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/prospect-lists/{listId}/members": {
+      "post": {
+        "operationId": "ProspectLists.addMember",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProspectListMemberDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["ProspectLists"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/prospect-lists/{listId}/members/{memberId}": {
+      "delete": {
+        "operationId": "ProspectLists.removeMember",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["ProspectLists"]
+      },
+      "patch": {
+        "operationId": "ProspectLists.updateMember",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProspectListMemberDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["ProspectLists"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/retention": {
+      "get": {
+        "operationId": "Retention.summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Retention"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/retention/execute": {
+      "post": {
+        "operationId": "Retention.execute",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Retention"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/retention/policies/{dataClass}": {
+      "put": {
+        "operationId": "Retention.updatePolicy",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRetentionPolicyDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Retention"]
+      }
+    },
+    "/v1/workspaces/{workspaceId}/retention/preview": {
+      "post": {
+        "operationId": "Retention.preview",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["Retention"]
+      }
+    }
+  },
+  "servers": [],
+  "tags": []
+}

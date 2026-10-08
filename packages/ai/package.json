@@ -1,0 +1,21 @@
+{
+  "name": "@relationship/ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "golden-set": "tsx src/golden-set/cli.ts",
+    "dev": "tsc -p tsconfig.json --watch",
+    "prompt-registry": "tsx src/prompt-registry/cli.ts",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  }
+}

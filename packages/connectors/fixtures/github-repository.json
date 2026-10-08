@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "name": "github-openai-node",
+  "sourceType": "github",
+  "scope": {
+    "tenantId": "fixture-tenant",
+    "workspaceId": "fixture-workspace",
+    "allowedHosts": ["github.com", "api.github.com"],
+    "allowedContextKeys": []
+  },
+  "request": {
+    "sourceIdentifier": "https://github.com/openai/openai-node",
+    "tenantId": "fixture-tenant",
+    "timeoutMs": 5000,
+    "workspaceId": "fixture-workspace"
+  },
+  "recording": {
+    "recordedAt": "2026-07-01T12:00:00.000Z",
+    "dns": {
+      "api.github.com": [{ "address": "140.82.112.6", "family": 4 }]
+    },
+    "http": {
+      "requestUrl": "https://api.github.com/repos/openai/openai-node",
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json; charset=utf-8" },
+        "body": "{\"description\":\"Official JavaScript / TypeScript library for the OpenAI API\",\"full_name\":\"openai/openai-node\",\"html_url\":\"https://github.com/openai/openai-node\",\"language\":\"TypeScript\",\"stargazers_count\":12345}"
+      }
+    }
+  },
+  "expected": {
+    "policyStatus": "allowed",
+    "evidenceCount": 1,
+    "replayDigest": "sha256:03ac9c44b2f571d2b373a6b03d4b4bf4e9a5361a70c693522e9a9bf1c7f5dbfe"
+  }
+}

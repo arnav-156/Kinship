@@ -1,0 +1,66 @@
+{
+  "name": "relationship-intelligence-copilot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Trust-first Relationship Intelligence Copilot monorepo.",
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": "\u003e=22.0.0",
+    "pnpm": "\u003e=9.0.0"
+  },
+  "scripts": {
+    "ai:golden": "tsx packages/ai/src/golden-set/cli.ts",
+    "ai:prompts": "tsx packages/ai/src/prompt-registry/cli.ts",
+    "api:contract": "tsx --tsconfig apps/api/tsconfig.json apps/api/src/openapi/cli.ts",
+    "build": "corepack pnpm -r build",
+    "connectors:tokens": "tsx apps/api/src/operations/connector-token-admin.ts",
+    "clean": "corepack pnpm -r clean",
+    "connectors:harness": "tsx packages/connectors/src/harness/cli.ts",
+    "db:backup:verify": "tsx packages/db/src/backup-verification/cli.ts",
+    "db:generate": "corepack pnpm --filter @relationship/db prisma:generate",
+    "db:migration:check": "corepack pnpm --filter @relationship/db prisma:migration:check",
+    "db:migration:rehearse": "tsx packages/db/src/migration-rehearsal/cli.ts",
+    "demo:workspace": "tsx apps/api/src/operations/demo-workspace-admin.ts",
+    "db:migrate": "corepack pnpm --filter @relationship/db prisma:migrate",
+    "db:seed": "corepack pnpm --filter @relationship/db prisma:seed",
+    "db:validate": "corepack pnpm --filter @relationship/db prisma:validate",
+    "dev": "corepack pnpm -r --parallel dev",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "embedding:maintain": "tsx apps/worker/src/embedding-maintenance/cli.ts",
+    "identity:review": "tsx packages/search/src/identity-review/cli.ts",
+    "jobs:dead-letter": "tsx apps/api/src/operations/dead-letter-admin.ts",
+    "privacy:admin": "tsx apps/api/src/privacy/privacy-admin.ts",
+    "quality:web": "corepack pnpm --filter @relationship/web test:quality",
+    "quality:web:install": "corepack pnpm --filter @relationship/web exec playwright install chromium",
+    "retention:admin": "tsx apps/api/src/retention/retention-admin.ts",
+    "search:relevance": "tsx packages/search/src/relevance-evaluation/cli.ts",
+    "suppression:admin": "tsx apps/api/src/compliance/suppression-admin.ts",
+    "lint": "corepack pnpm -r lint",
+    "test": "corepack pnpm -r test",
+    "typecheck": "corepack pnpm -r build \u0026\u0026 corepack pnpm -r typecheck",
+    "docker:up": "docker compose -f infrastructure/docker-compose.yml up --build",
+    "docker:down": "docker compose -f infrastructure/docker-compose.yml down",
+    "smoke:api": "tsx scripts/api-smoke.ts",
+    "smoke:api:strict": "tsx scripts/api-smoke.ts --require-ready-ok",
+    "slo:load": "tsx packages/testing/src/slo-load/cli.ts",
+    "security:regression": "tsx packages/testing/src/security-regression/cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "@typescript-eslint/eslint-plugin": "^8.19.1",
+    "@typescript-eslint/parser": "^8.19.1",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "pnpm": {
+    "overrides": {
+      "multer": "^2.2.0",
+      "postcss": "^8.5.10",
+      "@hono/node-server": "^1.19.13"
+    }
+  }
+}

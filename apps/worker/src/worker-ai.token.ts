@@ -1,0 +1,1 @@
+export const WORKER_MODEL_GATEWAY = Symbol("WORKER_MODEL_GATEWAY");

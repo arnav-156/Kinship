@@ -1,0 +1,26 @@
+{
+  "name": "@relationship/scheduler",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "dev": "tsx watch src/main.ts",
+    "lint": "eslint .",
+    "start": "node dist/main.js",
+    "start:prod": "node dist/main.js",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@relationship/config": "workspace:*",
+    "@relationship/db": "workspace:^",
+    "@relationship/logger": "workspace:*",
+    "@relationship/queue": "workspace:^"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1"
+  }
+}

@@ -1,0 +1,255 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "relationship-search-v1",
+  "description": "Synthetic, fully labeled evidence pools for deterministic relationship-search regression evaluation.",
+  "cutoff": 3,
+  "minimums": {
+    "hitRateAtK": 1,
+    "meanReciprocalRank": 1,
+    "ndcgAtK": 0.95,
+    "precisionAtK": 0.6,
+    "recallAtK": 1
+  },
+  "queries": [
+    {
+      "queryId": "robotics-founding-engineer",
+      "query": "robotics founding engineer",
+      "candidates": [
+        {
+          "evidenceId": "robotics-founder-profile",
+          "evidenceSummary": "Founding engineer who built autonomous robotics systems",
+          "searchText": "robotics founding engineer autonomy hardware",
+          "confidenceScore": 0.94,
+          "freshnessScore": 0.92,
+          "semanticScore": 0.95,
+          "metadataScore": 0.8,
+          "sourceType": "github"
+        },
+        {
+          "evidenceId": "robotics-team-history",
+          "evidenceSummary": "Robotics engineer joined the founding team and led automation",
+          "searchText": "founding engineer robotics team",
+          "confidenceScore": 0.82,
+          "freshnessScore": 0.81,
+          "semanticScore": 0.72,
+          "metadataScore": 0.5,
+          "sourceType": "csv_import"
+        },
+        {
+          "evidenceId": "fintech-founder-profile",
+          "evidenceSummary": "Founder of a consumer payments company",
+          "searchText": "fintech founder payments",
+          "confidenceScore": 0.97,
+          "freshnessScore": 0.95,
+          "semanticScore": 0.08,
+          "sourceType": "url"
+        },
+        {
+          "evidenceId": "robotics-sales-role",
+          "evidenceSummary": "Enterprise sales representative for industrial robotics",
+          "searchText": "robotics sales account executive",
+          "confidenceScore": 0.87,
+          "freshnessScore": 0.9,
+          "semanticScore": 0.32,
+          "sourceType": "linkedin"
+        },
+        {
+          "evidenceId": "backend-engineer-profile",
+          "evidenceSummary": "Backend engineer maintaining billing APIs",
+          "searchText": "software engineer billing platform",
+          "confidenceScore": 0.91,
+          "freshnessScore": 0.88,
+          "semanticScore": 0.12,
+          "sourceType": "github"
+        }
+      ],
+      "judgments": [
+        { "evidenceId": "robotics-founder-profile", "grade": 3 },
+        { "evidenceId": "robotics-team-history", "grade": 2 },
+        { "evidenceId": "fintech-founder-profile", "grade": 0 },
+        { "evidenceId": "robotics-sales-role", "grade": 0 },
+        { "evidenceId": "backend-engineer-profile", "grade": 0 }
+      ]
+    },
+    {
+      "queryId": "open-source-database-maintainer",
+      "query": "open source database maintainer",
+      "candidates": [
+        {
+          "evidenceId": "database-maintainer-commits",
+          "evidenceSummary": "Maintainer of an open source distributed database",
+          "searchText": "open source database maintainer commits releases",
+          "confidenceScore": 0.96,
+          "freshnessScore": 0.94,
+          "semanticScore": 0.97,
+          "metadataScore": 0.9,
+          "sourceType": "github"
+        },
+        {
+          "evidenceId": "database-governance-note",
+          "evidenceSummary": "Open source project governance lists a database release maintainer",
+          "searchText": "database maintainer open source governance",
+          "confidenceScore": 0.84,
+          "freshnessScore": 0.79,
+          "semanticScore": 0.76,
+          "metadataScore": 0.6,
+          "sourceType": "url"
+        },
+        {
+          "evidenceId": "closed-source-dba",
+          "evidenceSummary": "Database administrator for an internal enterprise system",
+          "searchText": "database operations administrator",
+          "confidenceScore": 0.93,
+          "freshnessScore": 0.9,
+          "semanticScore": 0.42,
+          "sourceType": "csv_import"
+        },
+        {
+          "evidenceId": "frontend-library-maintainer",
+          "evidenceSummary": "Maintainer of an open source frontend component library",
+          "searchText": "open source maintainer user interface",
+          "confidenceScore": 0.9,
+          "freshnessScore": 0.91,
+          "semanticScore": 0.28,
+          "sourceType": "github"
+        },
+        {
+          "evidenceId": "database-vendor-sales",
+          "evidenceSummary": "Sales leader at a database software vendor",
+          "searchText": "database sales leadership",
+          "confidenceScore": 0.89,
+          "freshnessScore": 0.87,
+          "semanticScore": 0.18,
+          "sourceType": "linkedin"
+        }
+      ],
+      "judgments": [
+        { "evidenceId": "database-maintainer-commits", "grade": 3 },
+        { "evidenceId": "database-governance-note", "grade": 2 },
+        { "evidenceId": "closed-source-dba", "grade": 0 },
+        { "evidenceId": "frontend-library-maintainer", "grade": 0 },
+        { "evidenceId": "database-vendor-sales", "grade": 0 }
+      ]
+    },
+    {
+      "queryId": "fintech-security-leader",
+      "query": "fintech security leader",
+      "candidates": [
+        {
+          "evidenceId": "fintech-security-head",
+          "evidenceSummary": "Security leader for a regulated fintech platform",
+          "searchText": "fintech security leader risk compliance",
+          "confidenceScore": 0.95,
+          "freshnessScore": 0.93,
+          "semanticScore": 0.96,
+          "metadataScore": 0.85,
+          "sourceType": "linkedin"
+        },
+        {
+          "evidenceId": "payments-security-talk",
+          "evidenceSummary": "Fintech engineering leader presented a payment security program",
+          "searchText": "fintech security leadership payments",
+          "confidenceScore": 0.83,
+          "freshnessScore": 0.86,
+          "semanticScore": 0.78,
+          "metadataScore": 0.55,
+          "sourceType": "url"
+        },
+        {
+          "evidenceId": "fintech-growth-lead",
+          "evidenceSummary": "Growth leader at a fintech lending company",
+          "searchText": "fintech marketing growth leader",
+          "confidenceScore": 0.94,
+          "freshnessScore": 0.92,
+          "semanticScore": 0.31,
+          "sourceType": "linkedin"
+        },
+        {
+          "evidenceId": "security-researcher",
+          "evidenceSummary": "Application security researcher in higher education",
+          "searchText": "security research vulnerabilities",
+          "confidenceScore": 0.9,
+          "freshnessScore": 0.88,
+          "semanticScore": 0.38,
+          "sourceType": "github"
+        },
+        {
+          "evidenceId": "banking-operations-manager",
+          "evidenceSummary": "Operations manager at a regional bank",
+          "searchText": "banking operations manager",
+          "confidenceScore": 0.92,
+          "freshnessScore": 0.89,
+          "semanticScore": 0.15,
+          "sourceType": "csv_import"
+        }
+      ],
+      "judgments": [
+        { "evidenceId": "fintech-security-head", "grade": 3 },
+        { "evidenceId": "payments-security-talk", "grade": 2 },
+        { "evidenceId": "fintech-growth-lead", "grade": 0 },
+        { "evidenceId": "security-researcher", "grade": 0 },
+        { "evidenceId": "banking-operations-manager", "grade": 0 }
+      ]
+    },
+    {
+      "queryId": "carbon-accounting-researcher",
+      "query": "carbon accounting researcher",
+      "candidates": [
+        {
+          "evidenceId": "carbon-research-profile",
+          "evidenceSummary": "Researcher specializing in carbon accounting methods",
+          "searchText": "carbon accounting researcher climate measurement",
+          "confidenceScore": 0.96,
+          "freshnessScore": 0.9,
+          "semanticScore": 0.98,
+          "metadataScore": 0.8,
+          "sourceType": "url"
+        },
+        {
+          "evidenceId": "emissions-paper",
+          "evidenceSummary": "Carbon accounting research paper on corporate emissions",
+          "searchText": "researcher carbon accounting emissions",
+          "confidenceScore": 0.86,
+          "freshnessScore": 0.83,
+          "semanticScore": 0.82,
+          "metadataScore": 0.65,
+          "sourceType": "csv_import"
+        },
+        {
+          "evidenceId": "financial-accountant",
+          "evidenceSummary": "Certified accountant responsible for financial reporting",
+          "searchText": "accounting finance audit",
+          "confidenceScore": 0.95,
+          "freshnessScore": 0.94,
+          "semanticScore": 0.22,
+          "sourceType": "linkedin"
+        },
+        {
+          "evidenceId": "carbon-sales-executive",
+          "evidenceSummary": "Sales executive for carbon offset projects",
+          "searchText": "carbon markets sales",
+          "confidenceScore": 0.91,
+          "freshnessScore": 0.91,
+          "semanticScore": 0.29,
+          "sourceType": "linkedin"
+        },
+        {
+          "evidenceId": "machine-learning-researcher",
+          "evidenceSummary": "Researcher working on machine learning optimization",
+          "searchText": "artificial intelligence research",
+          "confidenceScore": 0.93,
+          "freshnessScore": 0.92,
+          "semanticScore": 0.2,
+          "sourceType": "github"
+        }
+      ],
+      "judgments": [
+        { "evidenceId": "carbon-research-profile", "grade": 3 },
+        { "evidenceId": "emissions-paper", "grade": 2 },
+        { "evidenceId": "financial-accountant", "grade": 0 },
+        { "evidenceId": "carbon-sales-executive", "grade": 0 },
+        { "evidenceId": "machine-learning-researcher", "grade": 0 }
+      ]
+    }
+  ]
+}

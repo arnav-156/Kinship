@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "relationship-ai-golden-v1",
+  "description": "Synthetic evidence-grounded relationship brief and draft quality baseline.",
+  "claimMatchMinimumKeywordRecall": 0.5,
+  "pricing": {
+    "assumptionId": "gpt-4.1-mini-standard-assumption-2026-07",
+    "inputUsdPerMillionTokens": 0.4,
+    "outputUsdPerMillionTokens": 1.6
+  },
+  "thresholds": {
+    "minimumGroundedness": 1,
+    "maximumUnsupportedClaimRate": 0,
+    "minimumCitationPrecision": 1,
+    "minimumCitationRecall": 1,
+    "maximumP95LatencyMs": 500,
+    "maximumAverageCostUsd": 0.001
+  },
+  "cases": [
+    {
+      "caseId": "brief-analytical-engine-collaboration",
+      "task": "relationship_brief",
+      "input": {
+        "subjectName": "Ada Lovelace",
+        "goal": "research collaboration",
+        "evidenceCards": [
+          {
+            "evidenceId": "evidence_ada_repository",
+            "summary": "Ada maintains a public repository about analytical engines.",
+            "confidenceScore": 0.94,
+            "rankScore": 0.91,
+            "sourceType": "github"
+          }
+        ]
+      },
+      "expectations": {
+        "requiredEvidenceIds": ["evidence_ada_repository"],
+        "supportedFacts": [
+          {
+            "evidenceId": "evidence_ada_repository",
+            "keywords": ["maintains", "repository", "analytical engines"]
+          }
+        ],
+        "forbiddenPhrases": ["won an award", "private email address"]
+      }
+    },
+    {
+      "caseId": "brief-compiler-community-speaking",
+      "task": "relationship_brief",
+      "input": {
+        "subjectName": "Grace Hopper",
+        "goal": "invite a technical speaker",
+        "evidenceCards": [
+          {
+            "evidenceId": "evidence_grace_compiler",
+            "summary": "Grace gave a public talk about compiler design and developer education.",
+            "confidenceScore": 0.9,
+            "rankScore": 0.88,
+            "sourceType": "url"
+          }
+        ]
+      },
+      "expectations": {
+        "requiredEvidenceIds": ["evidence_grace_compiler"],
+        "supportedFacts": [
+          {
+            "evidenceId": "evidence_grace_compiler",
+            "keywords": ["public talk", "compiler", "developer education"]
+          }
+        ],
+        "forbiddenPhrases": ["confirmed attendance", "personal phone number"]
+      }
+    },
+    {
+      "caseId": "brief-low-confidence-open-source-signal",
+      "task": "relationship_brief",
+      "input": {
+        "subjectName": "Lin Chen",
+        "goal": "open source database research",
+        "evidenceCards": [
+          {
+            "evidenceId": "evidence_lin_database",
+            "summary": "Lin contributed documentation to a public distributed database project.",
+            "confidenceScore": 0.45,
+            "rankScore": 0.62,
+            "sourceType": "github"
+          }
+        ]
+      },
+      "expectations": {
+        "requiredEvidenceIds": ["evidence_lin_database"],
+        "supportedFacts": [
+          {
+            "evidenceId": "evidence_lin_database",
+            "keywords": ["contributed", "documentation", "distributed database"]
+          }
+        ],
+        "forbiddenPhrases": ["lead maintainer", "database founder"]
+      }
+    },
+    {
+      "caseId": "draft-analytical-engine-outreach",
+      "task": "draft_message",
+      "input": {
+        "subjectName": "Ada Lovelace",
+        "goal": "research collaboration",
+        "variant": "concise",
+        "brief": {
+          "channelRisk": "allowed",
+          "confidenceScore": 0.94,
+          "evidenceCards": [
+            {
+              "evidenceId": "evidence_ada_repository",
+              "summary": "Ada maintains a public repository about analytical engines.",
+              "confidenceScore": 0.94,
+              "rankScore": 0.91,
+              "sourceType": "github"
+            }
+          ],
+          "fitScore": 0.91,
+          "freshnessMetadata": {
+            "newestEvidenceId": "evidence_ada_repository",
+            "staleEvidenceIds": []
+          },
+          "outreachAngles": [
+            {
+              "evidenceIds": ["evidence_ada_repository"],
+              "label": "Public analytical engine work",
+              "rationale": "Ada maintains a public repository about analytical engines."
+            }
+          ],
+          "recommendedChannel": "email",
+          "relationshipStage": "prospect",
+          "summary": "Ada has relevant public analytical engine work.",
+          "warnings": []
+        }
+      },
+      "expectations": {
+        "requiredEvidenceIds": ["evidence_ada_repository"],
+        "supportedFacts": [
+          {
+            "evidenceId": "evidence_ada_repository",
+            "keywords": ["maintains", "repository", "analytical engines"]
+          }
+        ],
+        "forbiddenPhrases": ["already agreed", "private contact details"]
+      }
+    }
+  ]
+}

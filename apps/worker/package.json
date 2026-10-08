@@ -1,0 +1,34 @@
+{
+  "name": "@relationship/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "dev": "tsx watch src/main.ts",
+    "embedding:maintain": "tsx src/embedding-maintenance/cli.ts",
+    "lint": "eslint .",
+    "start": "node dist/main.js",
+    "start:prod": "node dist/main.js",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.18",
+    "@nestjs/core": "^11.1.18",
+    "@relationship/ai": "workspace:^",
+    "@relationship/config": "workspace:*",
+    "@relationship/connectors": "workspace:^",
+    "@relationship/db": "workspace:^",
+    "@relationship/logger": "workspace:*",
+    "@relationship/policy": "workspace:^",
+    "@relationship/queue": "workspace:^",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1"
+  }
+}

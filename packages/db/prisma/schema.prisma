@@ -1,0 +1,838 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  invited
+  active
+  disabled
+}
+
+enum WorkspaceRole {
+  owner
+  admin
+  manager
+  member
+  viewer
+  compliance_reviewer
+}
+
+enum EntityType {
+  person
+  organization
+  other
+}
+
+enum SourceType {
+  user_url
+  company_website
+  github
+  orcid
+  semantic_scholar
+  crossref
+  csv_import
+  crm_import
+  manual_linkedin_context
+}
+
+enum PolicyStatus {
+  allowed
+  warn
+  blocked
+}
+
+enum RelationshipStage {
+  unknown
+  prospect
+  warm
+  active
+  dormant
+  customer
+  partner
+}
+
+enum ChannelType {
+  email
+  linkedin_context
+  phone
+  meeting
+  unknown
+}
+
+enum DraftVariant {
+  concise
+  warm_professional
+  evidence_heavy
+}
+
+enum DraftStatus {
+  draft
+  needs_review
+  validated
+  blocked
+  archived
+}
+
+enum ConsentStatus {
+  confirmed
+  unknown
+  withdrawn
+}
+
+enum PolicyPurpose {
+  relationship_intelligence
+  outreach_review
+}
+
+enum RecipientType {
+  professional
+  personal
+  unknown
+}
+
+enum ConnectorRunStatus {
+  queued
+  running
+  succeeded
+  failed
+  canceled
+}
+
+enum AiRunStatus {
+  queued
+  running
+  succeeded
+  failed
+}
+
+enum AiFeedbackTargetType {
+  brief
+  draft
+}
+
+enum AiFeedbackRating {
+  helpful
+  not_helpful
+}
+
+enum BackgroundJobStatus {
+  queued
+  active
+  completed
+  failed
+  dead_lettered
+  canceled
+}
+
+enum DataRequestType {
+  export
+  deletion
+}
+
+enum DataRequestStatus {
+  processing
+  completed
+  failed
+}
+
+model Tenant {
+  id                String            @id @default(cuid())
+  name              String
+  slug              String            @unique
+  defaultRegion     String?           @map("default_region")
+  isDemo            Boolean           @default(false) @map("is_demo")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  deletedAt         DateTime?         @map("deleted_at")
+  users             User[]
+  workspaces        Workspace[]
+  retentionPolicies RetentionPolicy[]
+  dataRequests      UserDataRequest[]
+
+  @@map("tenants")
+}
+
+model User {
+  id                       String                @id @default(cuid())
+  tenantId                 String                @map("tenant_id")
+  email                    String
+  passwordHash             String                @map("password_hash")
+  displayName              String?               @map("display_name")
+  status                   UserStatus            @default(active)
+  region                   String?
+  lastLoginAt              DateTime?             @map("last_login_at")
+  createdAt                DateTime              @default(now()) @map("created_at")
+  updatedAt                DateTime              @updatedAt @map("updated_at")
+  deletedAt                DateTime?             @map("deleted_at")
+  tenant                   Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  sentWorkspaceInvitations WorkspaceInvitation[] @relation("WorkspaceInvitationInviter")
+  memberships              WorkspaceMembership[]
+  auditEvents              AuditEvent[]
+  notes                    RelationshipNote[]
+  draftVersions            DraftMessageVersion[]
+  aiFeedback               AiQualityFeedback[]
+  dataRequests             UserDataRequest[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId, status])
+  @@map("users")
+}
+
+model Workspace {
+  id                String                   @id @default(cuid())
+  tenantId          String                   @map("tenant_id")
+  name              String
+  slug              String
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+  deletedAt         DateTime?                @map("deleted_at")
+  tenant            Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  memberships       WorkspaceMembership[]
+  invitations       WorkspaceInvitation[]
+  policySettings    WorkspacePolicySettings?
+  entities          Entity[]
+  prospectLists     ProspectList[]
+  evidenceItems     EvidenceItem[]
+  sourceSnapshots   SourceSnapshot[]
+  briefs            RelationshipBrief[]
+  draftMessages     DraftMessage[]
+  auditEvents       AuditEvent[]
+  connectorAccounts ConnectorAccount[]
+  connectorRuns     ConnectorRun[]
+  aiFeedback        AiQualityFeedback[]
+  retentionPolicies RetentionPolicy[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, deletedAt])
+  @@map("workspaces")
+}
+
+model WorkspaceMembership {
+  id          String        @id @default(cuid())
+  tenantId    String        @map("tenant_id")
+  workspaceId String        @map("workspace_id")
+  userId      String        @map("user_id")
+  role        WorkspaceRole
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([tenantId, workspaceId, role])
+  @@index([tenantId, userId])
+  @@map("workspace_memberships")
+}
+
+model WorkspaceInvitation {
+  id          String        @id @default(cuid())
+  tenantId    String        @map("tenant_id")
+  workspaceId String        @map("workspace_id")
+  email       String
+  role        WorkspaceRole @default(member)
+  tokenHash   String        @unique @map("token_hash")
+  invitedById String?       @map("invited_by_id")
+  expiresAt   DateTime      @map("expires_at")
+  acceptedAt  DateTime?     @map("accepted_at")
+  revokedAt   DateTime?     @map("revoked_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy   User?         @relation("WorkspaceInvitationInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, workspaceId, email, acceptedAt, revokedAt], map: "workspace_invitations_scope_email_status_idx")
+  @@index([expiresAt])
+  @@map("workspace_invitations")
+}
+
+model WorkspacePolicySettings {
+  id                     String        @id @default(cuid())
+  tenantId               String        @map("tenant_id")
+  workspaceId            String        @unique @map("workspace_id")
+  defaultPurpose         PolicyPurpose @default(outreach_review) @map("default_purpose")
+  defaultConsentStatus   ConsentStatus @default(unknown) @map("default_consent_status")
+  defaultRecipientType   RecipientType @default(unknown) @map("default_recipient_type")
+  defaultRecipientRegion String        @default("unknown") @map("default_recipient_region")
+  createdAt              DateTime      @default(now()) @map("created_at")
+  updatedAt              DateTime      @updatedAt @map("updated_at")
+  workspace              Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, workspaceId])
+  @@map("workspace_policy_settings")
+}
+
+model Entity {
+  id                String                   @id @default(cuid())
+  tenantId          String                   @map("tenant_id")
+  workspaceId       String                   @map("workspace_id")
+  type              EntityType
+  canonicalName     String                   @map("canonical_name")
+  description       String?
+  confidenceScore   Float?                   @map("confidence_score")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+  deletedAt         DateTime?                @map("deleted_at")
+  workspace         Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  person            Person?
+  organization      Organization?
+  aliases           EntityAlias[]
+  sourceIdentifiers EntitySourceIdentifier[]
+  evidenceItems     EvidenceItem[]
+  prospectMembers   ProspectListMember[]
+  briefs            RelationshipBrief[]
+  draftMessages     DraftMessage[]
+  contactChannels   ContactChannel[]
+  notes             RelationshipNote[]
+
+  @@index([tenantId, workspaceId, type])
+  @@index([tenantId, workspaceId, canonicalName])
+  @@map("entities")
+}
+
+model Person {
+  id               String        @id @default(cuid())
+  tenantId         String        @map("tenant_id")
+  workspaceId      String        @map("workspace_id")
+  entityId         String        @unique @map("entity_id")
+  fullName         String        @map("full_name")
+  title            String?
+  location         String?
+  primaryEmail     String?       @map("primary_email")
+  primaryEmailHash String?       @map("primary_email_hash")
+  orcidId          String?       @map("orcid_id")
+  githubLogin      String?       @map("github_login")
+  linkedinUrl      String?       @map("linkedin_url")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  entity           Entity        @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  affiliations     Affiliation[]
+
+  @@index([tenantId, workspaceId, fullName])
+  @@index([tenantId, primaryEmailHash])
+  @@index([tenantId, orcidId])
+  @@index([tenantId, githubLogin])
+  @@map("people")
+}
+
+model Organization {
+  id           String        @id @default(cuid())
+  tenantId     String        @map("tenant_id")
+  workspaceId  String        @map("workspace_id")
+  entityId     String        @unique @map("entity_id")
+  name         String
+  domain       String?
+  websiteUrl   String?       @map("website_url")
+  industry     String?
+  location     String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  entity       Entity        @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  affiliations Affiliation[]
+
+  @@unique([tenantId, workspaceId, domain])
+  @@index([tenantId, workspaceId, name])
+  @@map("organizations")
+}
+
+model Affiliation {
+  id              String       @id @default(cuid())
+  tenantId        String       @map("tenant_id")
+  workspaceId     String       @map("workspace_id")
+  personId        String       @map("person_id")
+  organizationId  String       @map("organization_id")
+  title           String?
+  startsAt        DateTime?    @map("starts_at")
+  endsAt          DateTime?    @map("ends_at")
+  confidenceScore Float?       @map("confidence_score")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  person          Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, workspaceId, personId])
+  @@index([tenantId, workspaceId, organizationId])
+  @@map("affiliations")
+}
+
+model EntityAlias {
+  id          String      @id @default(cuid())
+  tenantId    String      @map("tenant_id")
+  workspaceId String      @map("workspace_id")
+  entityId    String      @map("entity_id")
+  alias       String
+  sourceType  SourceType? @map("source_type")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  entity      Entity      @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, workspaceId, entityId, alias])
+  @@index([tenantId, workspaceId, alias])
+  @@map("entity_aliases")
+}
+
+model EntitySourceIdentifier {
+  id               String     @id @default(cuid())
+  tenantId         String     @map("tenant_id")
+  workspaceId      String     @map("workspace_id")
+  entityId         String     @map("entity_id")
+  sourceType       SourceType @map("source_type")
+  sourceIdentifier String     @map("source_identifier")
+  confidenceScore  Float      @map("confidence_score")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  entity           Entity     @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, workspaceId, sourceType, sourceIdentifier])
+  @@index([tenantId, workspaceId, entityId])
+  @@map("entity_source_identifiers")
+}
+
+model SourceSnapshot {
+  id                 String         @id @default(cuid())
+  tenantId           String         @map("tenant_id")
+  workspaceId        String         @map("workspace_id")
+  sourceType         SourceType     @map("source_type")
+  sourceUrl          String?        @map("source_url")
+  sourceIdentifier   String?        @map("source_identifier")
+  rawContentHash     String         @map("raw_content_hash")
+  contentType        String?        @map("content_type")
+  storageKey         String?        @map("storage_key")
+  retrievalTimestamp DateTime       @map("retrieval_timestamp")
+  policyStatus       PolicyStatus   @map("policy_status")
+  retentionExpiresAt DateTime?      @map("retention_expires_at")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  workspace          Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  evidenceItems      EvidenceItem[]
+
+  @@unique([tenantId, workspaceId, rawContentHash])
+  @@index([tenantId, workspaceId, sourceType])
+  @@index([tenantId, retentionExpiresAt])
+  @@map("source_snapshots")
+}
+
+model EvidenceItem {
+  id                 String                       @id @default(cuid())
+  tenantId           String                       @map("tenant_id")
+  workspaceId        String                       @map("workspace_id")
+  entityId           String                       @map("entity_id")
+  sourceSnapshotId   String                       @map("source_snapshot_id")
+  sourceType         SourceType                   @map("source_type")
+  sourceUrl          String?                      @map("source_url")
+  sourceIdentifier   String?                      @map("source_identifier")
+  retrievalTimestamp DateTime                     @map("retrieval_timestamp")
+  freshnessScore     Float                        @map("freshness_score")
+  confidenceScore    Float                        @map("confidence_score")
+  policyStatus       PolicyStatus                 @map("policy_status")
+  rawContentHash     String                       @map("raw_content_hash")
+  evidenceSummary    String                       @map("evidence_summary")
+  metadata           Json                         @default("{}")
+  embedding          Unsupported("vector(1536)")?
+  searchVector       Unsupported("tsvector")?     @map("search_vector")
+  retentionExpiresAt DateTime?                    @map("retention_expires_at")
+  createdAt          DateTime                     @default(now()) @map("created_at")
+  updatedAt          DateTime                     @updatedAt @map("updated_at")
+  workspace          Workspace                    @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  entity             Entity                       @relation(fields: [entityId], references: [id], onDelete: Restrict)
+  sourceSnapshot     SourceSnapshot               @relation(fields: [sourceSnapshotId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, workspaceId, entityId])
+  @@index([tenantId, workspaceId, sourceType])
+  @@index([tenantId, retentionExpiresAt])
+  @@index([searchVector], type: Gin, map: "evidence_items_search_vector_gin_idx")
+  @@map("evidence_items")
+}
+
+model ProspectList {
+  id          String               @id @default(cuid())
+  tenantId    String               @map("tenant_id")
+  workspaceId String               @map("workspace_id")
+  name        String
+  description String?
+  createdById String?              @map("created_by_id")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  deletedAt   DateTime?            @map("deleted_at")
+  workspace   Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  members     ProspectListMember[]
+
+  @@unique([tenantId, workspaceId, name])
+  @@index([tenantId, workspaceId, deletedAt])
+  @@map("prospect_lists")
+}
+
+model ProspectListMember {
+  id                String            @id @default(cuid())
+  tenantId          String            @map("tenant_id")
+  workspaceId       String            @map("workspace_id")
+  prospectListId    String            @map("prospect_list_id")
+  entityId          String            @map("entity_id")
+  relationshipStage RelationshipStage @default(unknown) @map("relationship_stage")
+  fitScore          Float?            @map("fit_score")
+  confidenceScore   Float?            @map("confidence_score")
+  notes             String?
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  prospectList      ProspectList      @relation(fields: [prospectListId], references: [id], onDelete: Cascade)
+  entity            Entity            @relation(fields: [entityId], references: [id], onDelete: Restrict)
+
+  @@unique([prospectListId, entityId])
+  @@index([tenantId, workspaceId, entityId])
+  @@map("prospect_list_members")
+}
+
+model RelationshipBrief {
+  id                 String              @id @default(cuid())
+  tenantId           String              @map("tenant_id")
+  workspaceId        String              @map("workspace_id")
+  subjectEntityId    String              @map("subject_entity_id")
+  goal               String
+  relationshipStage  RelationshipStage   @default(unknown) @map("relationship_stage")
+  fitScore           Float?              @map("fit_score")
+  confidenceScore    Float?              @map("confidence_score")
+  recommendedChannel ChannelType         @default(unknown) @map("recommended_channel")
+  channelRisk        PolicyStatus        @default(warn) @map("channel_risk")
+  summary            String
+  evidenceCards      Json                @default("[]") @map("evidence_cards")
+  outreachAngles     Json                @default("[]") @map("outreach_angles")
+  warnings           Json                @default("[]")
+  freshnessMetadata  Json                @default("{}") @map("freshness_metadata")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  subjectEntity      Entity              @relation(fields: [subjectEntityId], references: [id], onDelete: Restrict)
+  draftMessages      DraftMessage[]
+  aiFeedback         AiQualityFeedback[]
+
+  @@index([tenantId, workspaceId, subjectEntityId])
+  @@map("relationship_briefs")
+}
+
+model DraftMessage {
+  id               String                @id @default(cuid())
+  tenantId         String                @map("tenant_id")
+  workspaceId      String                @map("workspace_id")
+  briefId          String?               @map("brief_id")
+  subjectEntityId  String                @map("subject_entity_id")
+  variant          DraftVariant
+  channelType      ChannelType           @map("channel_type")
+  tone             String
+  body             String
+  evidenceClaims   Json                  @default("[]") @map("evidence_claims")
+  validationResult Json                  @default("{}") @map("validation_result")
+  status           DraftStatus           @default(needs_review)
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  workspace        Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  brief            RelationshipBrief?    @relation(fields: [briefId], references: [id], onDelete: SetNull)
+  subjectEntity    Entity                @relation(fields: [subjectEntityId], references: [id], onDelete: Restrict)
+  versions         DraftMessageVersion[]
+  aiFeedback       AiQualityFeedback[]
+
+  @@index([tenantId, workspaceId, subjectEntityId])
+  @@index([tenantId, workspaceId, status])
+  @@map("draft_messages")
+}
+
+model DraftMessageVersion {
+  id               String       @id @default(cuid())
+  tenantId         String       @map("tenant_id")
+  workspaceId      String       @map("workspace_id")
+  draftId          String       @map("draft_id")
+  version          Int
+  variant          DraftVariant
+  channelType      ChannelType  @map("channel_type")
+  tone             String
+  body             String
+  evidenceClaims   Json         @default("[]") @map("evidence_claims")
+  validationResult Json         @default("{}") @map("validation_result")
+  status           DraftStatus
+  reason           String
+  createdById      String?      @map("created_by_id")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  draft            DraftMessage @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  createdBy        User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([draftId, version])
+  @@index([tenantId, workspaceId, draftId, createdAt], map: "draft_message_versions_tenant_id_workspace_id_draft_id_created_")
+  @@index([createdById])
+  @@map("draft_message_versions")
+}
+
+model ContactChannel {
+  id              String        @id @default(cuid())
+  tenantId        String        @map("tenant_id")
+  workspaceId     String        @map("workspace_id")
+  entityId        String        @map("entity_id")
+  channelType     ChannelType   @map("channel_type")
+  valueHash       String        @map("value_hash")
+  label           String?
+  consentStatus   ConsentStatus @default(unknown) @map("consent_status")
+  purpose         PolicyPurpose @default(outreach_review)
+  recipientType   RecipientType @default(unknown) @map("recipient_type")
+  recipientRegion String        @default("unknown") @map("recipient_region")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  entity          Entity        @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, workspaceId, channelType, valueHash])
+  @@index([tenantId, workspaceId, entityId])
+  @@map("contact_channels")
+}
+
+model SuppressionEntry {
+  id          String      @id @default(cuid())
+  tenantId    String      @map("tenant_id")
+  workspaceId String?     @map("workspace_id")
+  channelType ChannelType @map("channel_type")
+  valueHash   String      @map("value_hash")
+  reason      String
+  source      String
+  createdById String?     @map("created_by_id")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  deletedAt   DateTime?   @map("deleted_at")
+
+  @@unique([tenantId, workspaceId, channelType, valueHash])
+  @@index([tenantId, workspaceId, deletedAt])
+  @@map("suppression_entries")
+}
+
+model RelationshipNote {
+  id          String   @id @default(cuid())
+  tenantId    String   @map("tenant_id")
+  workspaceId String   @map("workspace_id")
+  entityId    String   @map("entity_id")
+  authorId    String   @map("author_id")
+  body        String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  entity      Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, workspaceId, entityId])
+  @@map("relationship_notes")
+}
+
+model AuditEvent {
+  id          String     @id @default(cuid())
+  tenantId    String     @map("tenant_id")
+  workspaceId String?    @map("workspace_id")
+  actorUserId String?    @map("actor_user_id")
+  eventType   String     @map("event_type")
+  subjectType String?    @map("subject_type")
+  subjectId   String?    @map("subject_id")
+  ipHash      String?    @map("ip_hash")
+  metadata    Json       @default("{}")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  user        User?      @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, workspaceId, createdAt])
+  @@index([tenantId, eventType, createdAt])
+  @@map("audit_events")
+}
+
+model ConnectorAccount {
+  id          String               @id @default(cuid())
+  tenantId    String               @map("tenant_id")
+  workspaceId String               @map("workspace_id")
+  provider    SourceType
+  displayName String?              @map("display_name")
+  status      String               @default("active")
+  metadata    Json                 @default("{}")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  workspace   Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  credential  ConnectorCredential?
+  runs        ConnectorRun[]
+
+  @@unique([tenantId, workspaceId, provider])
+  @@map("connector_accounts")
+}
+
+model ConnectorCredential {
+  id                 String           @id @default(cuid())
+  tenantId           String           @map("tenant_id")
+  workspaceId        String           @map("workspace_id")
+  connectorAccountId String           @unique @map("connector_account_id")
+  algorithm          String
+  ciphertext         String
+  iv                 String
+  authTag            String           @map("auth_tag")
+  keyVersion         String           @map("key_version")
+  tokenFingerprint   String           @map("token_fingerprint")
+  rotatedAt          DateTime         @map("rotated_at")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+  connectorAccount   ConnectorAccount @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, workspaceId])
+  @@map("connector_credentials")
+}
+
+model ConnectorRun {
+  id                 String             @id @default(cuid())
+  tenantId           String             @map("tenant_id")
+  workspaceId        String             @map("workspace_id")
+  connectorAccountId String?            @map("connector_account_id")
+  provider           SourceType
+  status             ConnectorRunStatus @default(queued)
+  startedAt          DateTime?          @map("started_at")
+  finishedAt         DateTime?          @map("finished_at")
+  failureReason      String?            @map("failure_reason")
+  metadata           Json               @default("{}")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  workspace          Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  connectorAccount   ConnectorAccount?  @relation(fields: [connectorAccountId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, workspaceId, status])
+  @@index([tenantId, workspaceId, provider])
+  @@map("connector_runs")
+}
+
+model AiRun {
+  id            String              @id @default(cuid())
+  tenantId      String              @map("tenant_id")
+  workspaceId   String              @map("workspace_id")
+  purpose       String
+  provider      String
+  model         String
+  promptVersion String              @map("prompt_version")
+  status        AiRunStatus         @default(queued)
+  inputHash     String?             @map("input_hash")
+  outputHash    String?             @map("output_hash")
+  inputTokens   Int?                @map("input_tokens")
+  outputTokens  Int?                @map("output_tokens")
+  latencyMs     Int?                @map("latency_ms")
+  costMicros    Int?                @map("cost_micros")
+  metadata      Json                @default("{}")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  feedback      AiQualityFeedback[]
+
+  @@index([tenantId, workspaceId, purpose, createdAt])
+  @@map("ai_runs")
+}
+
+model AiQualityFeedback {
+  id              String               @id @default(cuid())
+  tenantId        String               @map("tenant_id")
+  workspaceId     String               @map("workspace_id")
+  submittedById   String?              @map("submitted_by_id")
+  targetType      AiFeedbackTargetType @map("target_type")
+  briefId         String?              @map("brief_id")
+  draftId         String?              @map("draft_id")
+  aiRunId         String?              @map("ai_run_id")
+  snapshotKey     String               @map("snapshot_key")
+  outputHash      String               @map("output_hash")
+  targetUpdatedAt DateTime             @map("target_updated_at")
+  rating          AiFeedbackRating
+  reason          String
+  comment         String?
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+  workspace       Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  submittedBy     User?                @relation(fields: [submittedById], references: [id], onDelete: SetNull)
+  brief           RelationshipBrief?   @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  draft           DraftMessage?        @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  aiRun           AiRun?               @relation(fields: [aiRunId], references: [id], onDelete: SetNull)
+
+  @@unique([submittedById, snapshotKey])
+  @@index([tenantId, workspaceId, targetType, createdAt], map: "ai_quality_feedback_tenant_id_workspace_id_target_type_created_")
+  @@index([tenantId, briefId, createdAt])
+  @@index([tenantId, draftId, createdAt])
+  @@index([aiRunId])
+  @@map("ai_quality_feedback")
+}
+
+model AiEvalRun {
+  id          String         @id @default(cuid())
+  tenantId    String         @map("tenant_id")
+  workspaceId String?        @map("workspace_id")
+  name        String
+  status      AiRunStatus    @default(queued)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  completedAt DateTime?      @map("completed_at")
+  results     AiEvalResult[]
+
+  @@index([tenantId, createdAt])
+  @@map("ai_eval_runs")
+}
+
+model AiEvalResult {
+  id          String    @id @default(cuid())
+  tenantId    String    @map("tenant_id")
+  evalRunId   String    @map("eval_run_id")
+  fixtureName String    @map("fixture_name")
+  metricName  String    @map("metric_name")
+  score       Float
+  passed      Boolean
+  details     Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  evalRun     AiEvalRun @relation(fields: [evalRunId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, evalRunId])
+  @@map("ai_eval_results")
+}
+
+model BackgroundJob {
+  id             String              @id @default(cuid())
+  tenantId       String              @map("tenant_id")
+  workspaceId    String?             @map("workspace_id")
+  queueName      String              @map("queue_name")
+  jobName        String              @map("job_name")
+  idempotencyKey String              @map("idempotency_key")
+  status         BackgroundJobStatus @default(queued)
+  attempts       Int                 @default(0)
+  maxAttempts    Int                 @default(3) @map("max_attempts")
+  payload        Json
+  failureReason  String?             @map("failure_reason")
+  progress       Json                @default("{}")
+  availableAt    DateTime            @default(now()) @map("available_at")
+  lockedAt       DateTime?           @map("locked_at")
+  lockedBy       String?             @map("locked_by")
+  completedAt    DateTime?           @map("completed_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  @@unique([tenantId, queueName, idempotencyKey])
+  @@index([tenantId, workspaceId, status])
+  @@index([queueName, status, availableAt])
+  @@map("background_jobs")
+}
+
+model RetentionPolicy {
+  id            String     @id @default(cuid())
+  tenantId      String     @map("tenant_id")
+  workspaceId   String?    @map("workspace_id")
+  dataClass     String     @map("data_class")
+  retentionDays Int        @map("retention_days")
+  enabled       Boolean    @default(true)
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  tenant        Tenant     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  workspace     Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, workspaceId, dataClass])
+  @@index([tenantId, enabled])
+  @@map("retention_policies")
+}
+
+model UserDataRequest {
+  id            String            @id @default(cuid())
+  tenantId      String            @map("tenant_id")
+  userId        String?           @map("user_id")
+  requestType   DataRequestType   @map("request_type")
+  status        DataRequestStatus @default(processing)
+  result        Json?
+  failureReason String?           @map("failure_reason")
+  expiresAt     DateTime?         @map("expires_at")
+  completedAt   DateTime?         @map("completed_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  user          User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, userId, requestType, createdAt], map: "user_data_requests_tenant_id_user_id_request_type_created_at_id")
+  @@index([status, expiresAt])
+  @@map("user_data_requests")
+}

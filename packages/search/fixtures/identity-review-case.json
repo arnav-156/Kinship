@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "caseId": "case_ada_import",
+  "tenantId": "fixture-tenant",
+  "workspaceId": "fixture-workspace",
+  "subjectEntityId": "entity_import",
+  "input": {
+    "fullName": "Ada Lovelace",
+    "githubLogin": "ada-l",
+    "location": "London"
+  },
+  "candidates": [
+    {
+      "entityId": "entity_ada",
+      "canonicalName": "Ada Lovelace",
+      "githubLogin": "ada-l",
+      "location": "London",
+      "type": "person"
+    },
+    {
+      "entityId": "entity_grace",
+      "canonicalName": "Grace Hopper",
+      "githubLogin": "amazing-grace",
+      "location": "Arlington",
+      "type": "person"
+    }
+  ]
+}

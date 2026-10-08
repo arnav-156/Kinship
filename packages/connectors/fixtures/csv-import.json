@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "name": "csv-prospect-import",
+  "sourceType": "csv_import",
+  "scope": {
+    "tenantId": "fixture-tenant",
+    "workspaceId": "fixture-workspace",
+    "allowedHosts": [],
+    "allowedContextKeys": ["csvText"]
+  },
+  "request": {
+    "context": {
+      "csvText": "name,company\nAda Lovelace,Analytical Engines\n"
+    },
+    "sourceIdentifier": "fixture://prospects.csv",
+    "tenantId": "fixture-tenant",
+    "timeoutMs": 5000,
+    "workspaceId": "fixture-workspace"
+  },
+  "recording": {
+    "recordedAt": "2026-07-01T12:00:00.000Z",
+    "dns": {}
+  },
+  "expected": {
+    "policyStatus": "allowed",
+    "evidenceCount": 1,
+    "replayDigest": "sha256:79fb60a96b721318378981656192dccc867bfc5fc3cb4e5a74b700fbc48211d0"
+  }
+}

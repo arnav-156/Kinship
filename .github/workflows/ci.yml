@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: relationship
+          POSTGRES_PASSWORD: relationship
+          POSTGRES_USER: relationship
+        options: >-
+          --health-cmd "pg_isready -U relationship -d relationship"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+    env:
+      DATABASE_URL: postgresql://relationship:relationship@localhost:5432/relationship
+      SHADOW_DATABASE_URL: postgresql://relationship:relationship@localhost:5432/relationship_shadow
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Prisma validate
+        run: corepack pnpm db:validate
+
+      - name: Prisma generate
+        run: corepack pnpm db:generate
+
+      - name: Create Prisma shadow database
+        run: docker exec ${{ job.services.postgres.id }} createdb -U relationship relationship_shadow
+
+      - name: Prisma migration check
+        run: corepack pnpm db:migration:check
+
+      - name: Lint
+        run: corepack pnpm lint
+
+      - name: Typecheck
+        run: corepack pnpm typecheck
+
+      - name: API contract compatibility
+        run: corepack pnpm api:contract check
+
+      - name: Security regression corpus
+        run: corepack pnpm security:regression
+
+      - name: Test
+        run: corepack pnpm test
+
+      - name: Build
+        run: corepack pnpm build

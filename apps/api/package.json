@@ -1,0 +1,52 @@
+{
+  "name": "@relationship/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "dev": "tsx watch src/main.ts",
+    "demo:workspace": "tsx src/operations/demo-workspace-admin.ts",
+    "lint": "eslint .",
+    "connectors:tokens": "tsx src/operations/connector-token-admin.ts",
+    "jobs:dead-letter": "tsx src/operations/dead-letter-admin.ts",
+    "start": "node dist/main.js",
+    "start:prod": "node dist/main.js",
+    "privacy:admin": "tsx src/privacy/privacy-admin.ts",
+    "retention:admin": "tsx src/retention/retention-admin.ts",
+    "suppression:admin": "tsx src/compliance/suppression-admin.ts",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.18",
+    "@nestjs/core": "^11.1.18",
+    "@nestjs/platform-express": "^11.1.18",
+    "@nestjs/swagger": "^11.4.6",
+    "@relationship/ai": "workspace:^",
+    "@relationship/auth": "workspace:^",
+    "@relationship/config": "workspace:*",
+    "@relationship/connectors": "workspace:^",
+    "@relationship/db": "workspace:^",
+    "@relationship/logger": "workspace:*",
+    "@relationship/policy": "workspace:^",
+    "@relationship/queue": "workspace:^",
+    "@relationship/search": "workspace:^",
+    "@relationship/shared": "workspace:*",
+    "bcryptjs": "^3.0.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "class-validator-jsonschema": "^5.1.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "rimraf": "^6.0.1"
+  }
+}

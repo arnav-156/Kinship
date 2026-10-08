@@ -1,0 +1,3 @@
+workspace_id,channel_type,value,value_hash,reason,source
+,email,scenario@example.local,,Scenario opt out,scenario
+fixture-workspace,phone,,dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd,Scenario request,scenario

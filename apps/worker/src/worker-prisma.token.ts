@@ -1,0 +1,1 @@
+export const WORKER_PRISMA_CLIENT = Symbol("WORKER_PRISMA_CLIENT");
