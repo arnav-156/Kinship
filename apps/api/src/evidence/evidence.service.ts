@@ -7,7 +7,9 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
 } from "@nestjs/common";
+import { embedTexts, type ModelGateway } from "@relationship/ai";
 import {
   ConnectorError,
   ConnectorPolicyError,
@@ -16,12 +18,19 @@ import {
 } from "@relationship/connectors";
 import type { SourceConnector } from "@relationship/connectors";
 import type { AuthenticatedPrincipal } from "@relationship/auth";
-import type { Prisma, PrismaClient, SourceType } from "@relationship/db";
+import {
+  EVIDENCE_EMBEDDING_DIMENSIONS,
+  writeEvidenceEmbedding,
+  type Prisma,
+  type PrismaClient,
+  type SourceType,
+} from "@relationship/db";
 import { QueueName, type EvidenceIngestionJobPayload } from "@relationship/queue";
 import { canPerformWorkspaceAction } from "@relationship/policy";
 import type { ObjectStoragePort } from "@relationship/storage";
 
 import { AuditService } from "../audit/audit.service";
+import { MODEL_GATEWAY } from "../ai/ai.module";
 import { PRISMA_CLIENT } from "../database/prisma.token";
 import { calculateRetentionExpiration } from "../retention/retention.utils";
 import { OBJECT_STORAGE } from "../storage/object-storage.token";
@@ -74,6 +83,7 @@ export class EvidenceService {
     @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(OBJECT_STORAGE) private readonly objectStorage?: ObjectStoragePort,
+    @Optional() @Inject(MODEL_GATEWAY) private readonly modelGateway?: ModelGateway,
   ) {}
 
   analyzeUrl(principal: AuthenticatedPrincipal, input: AnalyzeUrlDto) {
@@ -133,6 +143,17 @@ export class EvidenceService {
       if (evidenceResults.length === 0) {
         throw new BadRequestException("Connector returned no evidence");
       }
+      const embeddings = this.modelGateway
+        ? await embedTexts(
+            this.modelGateway,
+            evidenceResults.map((evidence) => evidence.evidenceSummary),
+            {
+              expectedDimensions: EVIDENCE_EMBEDDING_DIMENSIONS,
+              ignoredProviders: ["mock"],
+              timeoutMs: 30_000,
+            },
+          )
+        : evidenceResults.map(() => undefined);
 
       const retrievalTimestamp = new Date(fetchResult.retrievedAt);
       const retentionPolicy = await this.prisma.retentionPolicy.findUnique({
@@ -257,28 +278,36 @@ export class EvidenceService {
         });
 
         const evidenceItems = [];
-        for (const evidence of evidenceResults) {
-          evidenceItems.push(
-            await tx.evidenceItem.create({
-              data: {
-                confidenceScore: evidence.confidenceScore,
-                entityId,
-                evidenceSummary: evidence.evidenceSummary,
-                freshnessScore: evidence.freshnessScore,
-                metadata: evidence.metadata as Prisma.InputJsonValue,
-                policyStatus: policy.policyStatus,
-                rawContentHash: fetchResult.contentHash,
-                retentionExpiresAt,
-                retrievalTimestamp,
-                sourceIdentifier: fetchResult.sourceIdentifier,
-                sourceSnapshotId: snapshot.id,
-                sourceType: fetchResult.sourceType as SourceType,
-                sourceUrl: fetchResult.sourceUrl,
-                tenantId: principal.tenantId,
-                workspaceId: input.workspaceId,
-              },
-            }),
-          );
+        for (const [index, evidence] of evidenceResults.entries()) {
+          const item = await tx.evidenceItem.create({
+            data: {
+              confidenceScore: evidence.confidenceScore,
+              entityId,
+              evidenceSummary: evidence.evidenceSummary,
+              freshnessScore: evidence.freshnessScore,
+              metadata: evidence.metadata as Prisma.InputJsonValue,
+              policyStatus: policy.policyStatus,
+              rawContentHash: fetchResult.contentHash,
+              retentionExpiresAt,
+              retrievalTimestamp,
+              sourceIdentifier: fetchResult.sourceIdentifier,
+              sourceSnapshotId: snapshot.id,
+              sourceType: fetchResult.sourceType as SourceType,
+              sourceUrl: fetchResult.sourceUrl,
+              tenantId: principal.tenantId,
+              workspaceId: input.workspaceId,
+            },
+          });
+          const embedding = embeddings[index];
+          if (embedding) {
+            await writeEvidenceEmbedding(tx, {
+              embedding,
+              evidenceId: item.id,
+              tenantId: principal.tenantId,
+              workspaceId: input.workspaceId,
+            });
+          }
+          evidenceItems.push(item);
         }
 
         await tx.backgroundJob.update({

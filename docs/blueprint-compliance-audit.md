@@ -120,7 +120,7 @@ The web interface presents a polished relationship workspace, discovery, trust/c
 | Relationship notes                 | Database table exists; UI state is local                                                        | PARTIAL  | Compromise                              | Relationship memory is lost across devices/sessions                          | Add note CRUD, authorship, timeline, and durable UI                     |
 | Relationship timeline              | Evidence timeline endpoint and UI concepts exist                                                | PARTIAL  | Compromise                              | Evidence history exists, but notes, drafts, and interactions are incomplete  | Build a unified paginated activity timeline                             |
 | Draft autosave and history         | Browser-local behavior only; no full draft update/version API                                   | PARTIAL  | Compromise                              | Work can be lost and cannot be audited/recovered                             | Add autosave, optimistic concurrency, and versions                      |
-| Search                             | Text/metadata search and deterministic ranking exist                                            | PARTIAL  | Compromise                              | Useful at small scale; weaker recall and relevance than planned              | Add embeddings, hybrid rank, pagination, filters, and facets            |
+| Search                             | PostgreSQL full-text and pgvector candidates use reciprocal-rank fusion plus quality signals    | PARTIAL  | Equivalent                              | Hybrid recall is operational; collection navigation remains basic            | Add cursor pagination and facets when result volume requires them       |
 | Similar people                     | Endpoint exists                                                                                 | PARTIAL  | Compromise                              | Similarity is not backed by production vector retrieval                      | Implement vector-backed similarity with explainable factors             |
 | Entity resolution                  | Deterministic identifiers plus probabilistic name/location logic                                | PARTIAL  | Equivalent                              | Better than LLM-only merge; lacks review operations                          | Add candidate review, merge/split, and audit UI                         |
 | Compliance evaluation              | Deterministic policy uses durable purpose, consent, recipient type, and region context          | FULL     | Equivalent                              | Core trust and safety boundary works with auditable workflow context         | Expand policy packs only when new jurisdictions require them            |
@@ -154,15 +154,15 @@ The web interface presents a polished relationship workspace, discovery, trust/c
 | Brief module              | Generate and retrieve brief                                                                              | FULL     | Revisions, feedback, explainability, status transitions                          |
 | Draft module              | Generate and persist draft                                                                               | PARTIAL  | CRUD, rewrite, validate, autosave, versions, export/handoff                      |
 | Compliance module         | Policy and suppressions operational                                                                      | FULL     | Regional policy depth, retention execution, admin configuration                  |
-| Workflow module           | Durable consumers, retry, idempotency, progress, cancellation, and DLQ replay for five core job families | PARTIAL  | Remaining embedding, export/deletion, and notification schedules                 |
+| Workflow module           | Durable consumers, retry, idempotency, progress, cancellation, and DLQ replay for five core job families | PARTIAL  | Remaining export/deletion and notification schedules                             |
 | Notification module       | No operational service                                                                                   | MISSING  | Job, warning, assignment, and follow-up notifications                            |
 | Connector framework       | Public URL and research-source connectors plus CSV logic                                                 | PARTIAL  | OAuth account lifecycle and first-party productivity/CRM connectors              |
-| Ingestion pipeline        | Fetch, normalize, hash, persist immutable raw snapshot, extract, resolve, persist evidence               | PARTIAL  | Embeddings and policy depth per connector                                        |
+| Ingestion pipeline        | Fetch, normalize, snapshot, extract, resolve, embed, and persist evidence                                | PARTIAL  | Policy depth per connector                                                       |
 | Entity resolution         | Deterministic and probabilistic resolver                                                                 | PARTIAL  | Human review queue, merge/split controls, quality metrics                        |
-| Hybrid search             | Lexical/metadata ranking only                                                                            | PARTIAL  | Vector query, OpenSearch or equivalent, rank fusion, query planner               |
-| Vector store              | pgvector schema/index migration                                                                          | PARTIAL  | Embedding generation/backfill/query path                                         |
+| Hybrid search             | Indexed PostgreSQL full-text and pgvector retrieval with reciprocal-rank fusion                          | FULL     | Add a separate search service only if measured scale requires it                 |
+| Vector store              | pgvector schema/index, online generation, checkpointed backfill, and runtime query path                  | FULL     | Monitor recall and index tuning as corpus size grows                             |
 | Graph store               | Relational affiliations only                                                                             | DEFERRED | Dedicated graph/path scoring only when justified                                 |
-| Object storage            | S3/MinIO create-only snapshot writes, lifecycle metadata, reads, and retention deletion                  | PARTIAL  | Signed reads, bucket hardening, and recovery/integration drills                  |
+| Object storage            | S3-compatible create-only snapshot writes, lifecycle metadata, reads, and retention deletion             | PARTIAL  | Signed reads, bucket hardening, and recovery/integration drills                  |
 | Redis/cache               | Compose/config presence                                                                                  | PARTIAL  | Client usage, cache strategy, distributed rate limit, queue backing              |
 | AI orchestration          | Provider interface, structured prompts, validation, run records                                          | PARTIAL  | Routing, fallback, streaming, caching, tools, eval and cost control              |
 | Evaluation system         | Eval tables only                                                                                         | PARTIAL  | Runner, golden sets, CI gates, dashboards, human feedback loop                   |
@@ -182,8 +182,8 @@ The web interface presents a polished relationship workspace, discovery, trust/c
 | 2    | Apply source and purpose policy                                  | Source safety and some policy checks exist; purpose/region context is incomplete           | PARTIAL |
 | 3    | Snapshot, parse, normalize, detect PII, extract claims           | Parse/normalize/hash/extract exists; object snapshot and full PII lifecycle are incomplete | PARTIAL |
 | 4    | Resolve person/organization with deterministic-first logic       | Implemented without LLM-only merge                                                         | FULL    |
-| 5    | Generate embeddings and hybrid index                             | Schema exists; operational embedding/vector path is absent                                 | PARTIAL |
-| 6    | Retrieve and rank evidence                                       | Lexical/metadata/freshness/confidence ranking exists                                       | PARTIAL |
+| 5    | Generate embeddings and hybrid index                             | Online ingestion plus checkpointed backfill populate the indexed vector column             | FULL    |
+| 6    | Retrieve and rank evidence                                       | Full-text and vector candidates use reciprocal-rank fusion plus quality signals            | FULL    |
 | 7    | Produce cited brief and fit/angle                                | Implemented                                                                                | FULL    |
 | 8    | Produce grounded draft variants                                  | A grounded draft is implemented; variants/lifecycle are incomplete                         | PARTIAL |
 | 9    | Validate claims and policy                                       | Structured validation, unsupported-claim and deterministic policy checks exist             | FULL    |
@@ -205,7 +205,7 @@ The web interface presents a polished relationship workspace, discovery, trust/c
 
 ### Recovery workflow
 
-The blueprint expects idempotent jobs, retries, dead-letter handling, resumability, and clear user progress. Evidence ingestion, relationship-brief generation, draft generation, manual and recurring connector synchronization, and scheduled evidence retention now use crash-recoverable PostgreSQL leases, bounded retries, dead-letter handling, and replay. Remaining embedding, export/deletion, and notification schedules keep the workflow implementation `PARTIAL`.
+The blueprint expects idempotent jobs, retries, dead-letter handling, resumability, and clear user progress. Evidence ingestion (including online embedding), relationship-brief generation, draft generation, manual and recurring connector synchronization, and scheduled evidence retention now use crash-recoverable PostgreSQL leases, bounded retries, dead-letter handling, and replay. Remaining export/deletion and notification schedules keep the workflow implementation `PARTIAL`.
 
 ## 8. AI Comparison
 
@@ -346,24 +346,24 @@ The following are intentionally excluded and must not be treated as missing: aut
 
 ## 13. Missing Services and Infrastructure Checklist
 
-| Service/control                | Current state                                                                                    | Need                                                                                   |
-| ------------------------------ | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| Durable queue                  | PostgreSQL leasing is live for evidence, relationship-brief, draft, and connector-sync jobs      | Extend the same contract only as remaining scheduled job families are implemented      |
-| Worker runtime                 | Evidence ingestion, relationship-brief, draft, connector-sync, and retention processors are live | Add embedding and notification task processors                                         |
-| Scheduler                      | Evidence-retention and opt-in connector-refresh scans enqueue durable work                       | Add export/deletion and notification schedules                                         |
-| Redis runtime                  | Configured only                                                                                  | Queue backing, cache, distributed locks, and distributed rate limiting where justified |
-| Object storage runtime         | Package/config only                                                                              | Store immutable source snapshots and lifecycle metadata                                |
-| Search/vector runtime          | pgvector schema, no complete query path                                                          | Generate embeddings, backfill, index, retrieve, and fuse scores                        |
-| Secret manager                 | Environment variables                                                                            | Managed secret storage, scoped access, rotation, and audit                             |
-| Distributed rate limiting      | Process-local limiter                                                                            | Consistent tenant/user/IP limits across replicas                                       |
-| OpenTelemetry                  | Absent                                                                                           | Traces across web/API/worker/connectors/AI provider                                    |
-| Metrics backend and alerts     | Basic endpoint only                                                                              | Product, system, connector, policy, AI, queue, and SLO alerts                          |
-| Automated backups              | Runbook-oriented                                                                                 | Scheduled encrypted backups, retention, restore drills, RPO/RTO evidence               |
-| Managed deployment definitions | Docker Compose only                                                                              | Repeatable staging/production infrastructure and environment promotion                 |
-| WAF/edge controls              | Absent in repository                                                                             | DDoS, bot, abusive URL, and common exploit controls                                    |
-| Feature flags                  | Absent                                                                                           | Controlled connector/model/prompt rollouts and emergency disable switches              |
-| Preview/staging environments   | Not automated                                                                                    | Isolated migration and connector validation before production                          |
-| Artifact security              | No SBOM/signing path                                                                             | Image scanning, SBOM, provenance, and deployable artifact controls                     |
+| Service/control                | Current state                                                                                       | Need                                                                                   |
+| ------------------------------ | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Durable queue                  | PostgreSQL leasing is live for evidence, relationship-brief, draft, and connector-sync jobs         | Extend the same contract only as remaining scheduled job families are implemented      |
+| Worker runtime                 | Evidence ingestion with embeddings, brief, draft, connector-sync, and retention processors are live | Add notification task processors                                                       |
+| Scheduler                      | Evidence-retention and opt-in connector-refresh scans enqueue durable work                          | Add export/deletion and notification schedules                                         |
+| Redis runtime                  | Configured only                                                                                     | Queue backing, cache, distributed locks, and distributed rate limiting where justified |
+| Object storage runtime         | Immutable S3-compatible snapshots, reads, health, and retention deletion are live                   | Add deployment hardening and recovery drills                                           |
+| Search/vector runtime          | Online embeddings, checkpointed backfill, indexed retrieval, and rank fusion are live               | Tune index/query parameters from production recall and latency measurements            |
+| Secret manager                 | Environment variables                                                                               | Managed secret storage, scoped access, rotation, and audit                             |
+| Distributed rate limiting      | Process-local limiter                                                                               | Consistent tenant/user/IP limits across replicas                                       |
+| OpenTelemetry                  | Absent                                                                                              | Traces across web/API/worker/connectors/AI provider                                    |
+| Metrics backend and alerts     | Basic endpoint only                                                                                 | Product, system, connector, policy, AI, queue, and SLO alerts                          |
+| Automated backups              | Runbook-oriented                                                                                    | Scheduled encrypted backups, retention, restore drills, RPO/RTO evidence               |
+| Managed deployment definitions | Docker Compose only                                                                                 | Repeatable staging/production infrastructure and environment promotion                 |
+| WAF/edge controls              | Absent in repository                                                                                | DDoS, bot, abusive URL, and common exploit controls                                    |
+| Feature flags                  | Absent                                                                                              | Controlled connector/model/prompt rollouts and emergency disable switches              |
+| Preview/staging environments   | Not automated                                                                                       | Isolated migration and connector validation before production                          |
+| Artifact security              | No SBOM/signing path                                                                                | Image scanning, SBOM, provenance, and deployable artifact controls                     |
 
 ## 14. Missing APIs and Integrations Checklist
 
@@ -575,7 +575,7 @@ Effort assumes a small senior cross-functional team. `S` is 1-3 engineering days
 
 ### Milestone 3 - Production AI and retrieval quality (3-5 weeks)
 
-- Operationalize embeddings and pgvector hybrid retrieval with rank fusion.
+- Completed: operationalize embeddings and pgvector hybrid retrieval with rank fusion.
 - Add golden-set evaluations, feedback capture, model/provider failure tests, and release thresholds.
 - Add task-based routing, bounded fallback, streaming, token/cost accounting, and budgets.
 - Add claim-level evidence inspection and calibrated confidence where measurable.

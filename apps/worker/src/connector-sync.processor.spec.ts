@@ -39,6 +39,7 @@ describe("ConnectorSyncProcessor", () => {
     const updateMany = vi.fn().mockResolvedValue({ count: 1 });
     const connectorRunUpdateMany = vi.fn().mockResolvedValue({ count: 1 });
     const prisma = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
       $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback(prisma)),
       auditEvent: { create: vi.fn().mockResolvedValue({ id: "audit_1" }) },
       backgroundJob: { updateMany },
@@ -56,6 +57,14 @@ describe("ConnectorSyncProcessor", () => {
       prisma as never,
       new Map([["github", connector]]),
       { putSnapshot } as never,
+      {
+        embedText: vi.fn().mockResolvedValue({
+          dimensions: 1536,
+          embedding: Array.from({ length: 1536 }, () => 0.01),
+          model: "fixture-embedding",
+          provider: "openai-compatible",
+        }),
+      } as never,
     );
 
     await processor.process(
@@ -106,6 +115,7 @@ describe("ConnectorSyncProcessor", () => {
         }),
       }),
     );
+    expect(prisma.$executeRaw).toHaveBeenCalledOnce();
     expect(updateMany).toHaveBeenLastCalledWith({
       data: expect.objectContaining({
         progress: expect.objectContaining({

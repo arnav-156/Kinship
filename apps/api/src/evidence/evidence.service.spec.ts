@@ -35,6 +35,7 @@ describe("EvidenceService", () => {
       callback(prisma),
     );
     const prisma = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
       $transaction: transaction,
       backgroundJob: {
         update: vi.fn().mockResolvedValue({ id: "job_1" }),
@@ -51,10 +52,17 @@ describe("EvidenceService", () => {
       sourceSnapshot: { upsert: sourceSnapshotUpsert },
     };
     const putSnapshot = vi.fn().mockResolvedValue({ key: "source-snapshots/v1/snapshot_1" });
+    const embedText = vi.fn().mockResolvedValue({
+      dimensions: 1536,
+      embedding: Array.from({ length: 1536 }, () => 0.01),
+      model: "fixture-embedding",
+      provider: "openai-compatible",
+    });
     const service = new EvidenceService(
       prisma as never,
       { record: vi.fn().mockResolvedValue(undefined) } as never,
       { putSnapshot } as never,
+      { embedText } as never,
     );
 
     await service.ingest(principal, {
@@ -85,6 +93,10 @@ describe("EvidenceService", () => {
         }),
       }),
     );
+    expect(embedText).toHaveBeenCalledWith(
+      expect.objectContaining({ input: expect.any(String), timeoutMs: 30_000 }),
+    );
+    expect(prisma.$executeRaw).toHaveBeenCalledOnce();
   });
 
   it("lists recent workspace ingestion jobs scoped by tenant and workspace", async () => {

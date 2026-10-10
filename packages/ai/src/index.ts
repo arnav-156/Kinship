@@ -63,6 +63,42 @@ export interface ModelGatewayOptions {
   provider?: "mock" | "openai-compatible";
 }
 
+export interface EmbedTextsOptions {
+  expectedDimensions: number;
+  ignoredProviders?: string[];
+  timeoutMs?: number;
+}
+
+export async function embedTexts(
+  gateway: Pick<ModelGateway, "embedText">,
+  inputs: string[],
+  options: EmbedTextsOptions,
+): Promise<Array<number[] | undefined>> {
+  if (!Number.isInteger(options.expectedDimensions) || options.expectedDimensions < 1) {
+    throw new Error("expectedDimensions must be a positive integer");
+  }
+  const ignoredProviders = new Set(options.ignoredProviders ?? []);
+  const embeddings: Array<number[] | undefined> = [];
+  for (const input of inputs) {
+    const response = await gateway.embedText({ input, timeoutMs: options.timeoutMs });
+    if (ignoredProviders.has(response.provider)) {
+      embeddings.push(undefined);
+      continue;
+    }
+    if (
+      response.dimensions !== options.expectedDimensions ||
+      response.embedding.length !== options.expectedDimensions ||
+      response.embedding.some((value) => !Number.isFinite(value))
+    ) {
+      throw new Error(
+        `Embedding provider returned ${response.dimensions}/${response.embedding.length} dimensions; expected ${options.expectedDimensions} finite values`,
+      );
+    }
+    embeddings.push(response.embedding);
+  }
+  return embeddings;
+}
+
 export const EvidenceCardSchema = z.object({
   confidenceScore: z.number().min(0).max(1),
   evidenceId: z.string().min(1),

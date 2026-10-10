@@ -1,6 +1,6 @@
 # Search Relevance Evaluation
 
-The search relevance utility runs the production `@relationship/search` lexical scoring and evidence-ranking functions against an offline, fully labeled query set. It does not connect to a database or use tenant data, so a run is deterministic and safe for local development and CI.
+The search relevance utility runs the production `@relationship/search` lexical scoring, semantic-score ordering, reciprocal-rank fusion, and evidence-quality ranking functions against an offline, fully labeled query set. It does not connect to a database or use tenant data, so a run is deterministic and safe for local development and CI.
 
 ## Run the committed baseline
 
@@ -48,7 +48,7 @@ A schema-version `1` dataset contains:
 
 - A stable `datasetId`, positive `cutoff`, optional metric `minimums`, and one or more queries.
 - A unique `queryId`, query text, candidate pool, and judgments for every query.
-- Candidate inputs used by production ranking: summary/search text, confidence, freshness, and optional metadata/semantic scores.
+- Candidate inputs used by production ranking: summary/search text, confidence, freshness, and optional metadata/semantic scores. The evaluator derives lexical and semantic ranks exactly once before applying production reciprocal-rank fusion.
 - Exactly one explicit judgment for every candidate. Grade `0` is non-relevant, `1` is marginal, `2` is relevant, and `3` is highly relevant.
 - At least one relevant judgment per query and at least K candidates.
 

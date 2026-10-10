@@ -216,6 +216,18 @@ function evaluateQuery(query: LabeledRelevanceQuery, cutoff: number): RelevanceQ
   const judgmentByEvidenceId = new Map(
     query.judgments.map((judgment) => [judgment.evidenceId, judgment.grade]),
   );
+  const lexicalRankByEvidenceId = rankByScore(query.candidates, (candidate) =>
+    lexicalMatchScore(
+      query.query,
+      [candidate.evidenceSummary, candidate.searchText, candidate.sourceType]
+        .filter(Boolean)
+        .join(" "),
+    ),
+  );
+  const semanticRankByEvidenceId = rankByScore(
+    query.candidates,
+    (candidate) => candidate.semanticScore ?? 0,
+  );
   const ranked = rankEvidenceCandidates(
     query.candidates.map((candidate): EvidenceRetrievalCandidate => {
       const searchableText = [candidate.evidenceSummary, candidate.searchText, candidate.sourceType]
@@ -226,8 +238,10 @@ function evaluateQuery(query: LabeledRelevanceQuery, cutoff: number): RelevanceQ
         evidenceId: candidate.evidenceId,
         evidenceSummary: candidate.evidenceSummary,
         freshnessScore: candidate.freshnessScore,
+        lexicalRank: lexicalRankByEvidenceId.get(candidate.evidenceId),
         lexicalScore: lexicalMatchScore(query.query, searchableText),
         metadataScore: candidate.metadataScore,
+        semanticRank: semanticRankByEvidenceId.get(candidate.evidenceId),
         semanticScore: candidate.semanticScore,
         sourceType: candidate.sourceType,
       };
@@ -252,6 +266,23 @@ function evaluateQuery(query: LabeledRelevanceQuery, cutoff: number): RelevanceQ
       reasons: result.reasons,
     })),
   };
+}
+
+function rankByScore(
+  candidates: RelevanceEvaluationCandidate[],
+  score: (candidate: RelevanceEvaluationCandidate) => number,
+): Map<string, number> {
+  return new Map(
+    candidates
+      .map((candidate) => ({ candidate, score: score(candidate) }))
+      .filter((item) => item.score > 0)
+      .sort(
+        (left, right) =>
+          right.score - left.score ||
+          left.candidate.evidenceId.localeCompare(right.candidate.evidenceId),
+      )
+      .map((item, index) => [item.candidate.evidenceId, index + 1]),
+  );
 }
 
 function validateQuery(query: LabeledRelevanceQuery, cutoff: number): void {

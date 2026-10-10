@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildRetrievalContext,
   rankEvidenceCandidates,
+  reciprocalRankFusionScore,
   resolveEntityCandidates,
   scoreEntityCandidate,
 } from "./index";
@@ -30,6 +31,40 @@ describe("rankEvidenceCandidates", () => {
     expect(results[0]?.evidenceId).toBe("fresh_exact");
     expect(results[0]?.reasons).toContain("keyword match");
     expect(results[0]?.reasons).toContain("high confidence evidence");
+  });
+
+  it("promotes evidence found by both lexical and semantic retrieval", () => {
+    const results = rankEvidenceCandidates([
+      {
+        confidenceScore: 0.8,
+        evidenceId: "lexical_only",
+        evidenceSummary: "Exact phrase",
+        freshnessScore: 0.8,
+        lexicalRank: 1,
+        lexicalScore: 1,
+      },
+      {
+        confidenceScore: 0.8,
+        evidenceId: "hybrid_match",
+        evidenceSummary: "Conceptual match",
+        freshnessScore: 0.8,
+        lexicalRank: 2,
+        lexicalScore: 0.7,
+        semanticRank: 1,
+        semanticScore: 0.98,
+      },
+    ]);
+
+    expect(results[0]?.evidenceId).toBe("hybrid_match");
+    expect(results[0]?.reasons).toContain("reciprocal rank fusion");
+  });
+});
+
+describe("reciprocalRankFusionScore", () => {
+  it("normalizes fused ranks while rewarding agreement across modalities", () => {
+    expect(reciprocalRankFusionScore([1, 1], 2)).toBe(1);
+    expect(reciprocalRankFusionScore([1, undefined], 2)).toBe(0.5);
+    expect(reciprocalRankFusionScore([10], 1)).toBeLessThan(1);
   });
 });
 

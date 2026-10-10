@@ -1,7 +1,15 @@
 import { Inject, Injectable } from "@nestjs/common";
+import { embedTexts, type ModelGateway } from "@relationship/ai";
 import { getConnector } from "@relationship/connectors";
 import type { SourceConnector } from "@relationship/connectors";
-import type { BackgroundJob, Prisma, PrismaClient, SourceType } from "@relationship/db";
+import {
+  EVIDENCE_EMBEDDING_DIMENSIONS,
+  writeEvidenceEmbedding,
+  type BackgroundJob,
+  type Prisma,
+  type PrismaClient,
+  type SourceType,
+} from "@relationship/db";
 import {
   parseConnectorSyncJobPayload,
   parseEvidenceIngestionJobPayload,
@@ -11,6 +19,7 @@ import {
 import type { ObjectStoragePort } from "@relationship/storage";
 
 import { WORKER_CONNECTOR_REGISTRY } from "./worker-connectors.token";
+import { WORKER_MODEL_GATEWAY } from "./worker-ai.token";
 import { WORKER_PRISMA_CLIENT } from "./worker-prisma.token";
 import { WORKER_OBJECT_STORAGE } from "./worker-storage.token";
 
@@ -21,6 +30,7 @@ export class EvidenceIngestionProcessor {
     @Inject(WORKER_CONNECTOR_REGISTRY)
     private readonly connectorRegistry: Map<SourceType, SourceConnector>,
     @Inject(WORKER_OBJECT_STORAGE) private readonly objectStorage: ObjectStoragePort,
+    @Inject(WORKER_MODEL_GATEWAY) private readonly modelGateway?: ModelGateway,
   ) {}
 
   async process(job: BackgroundJob, workerId: string): Promise<void> {
@@ -93,6 +103,18 @@ export class EvidenceIngestionProcessor {
     if (evidenceResults.length === 0) {
       throw new Error("Connector returned no evidence");
     }
+    await this.updateProgress(job.id, workerId, 75, "generating_embeddings");
+    const embeddings = this.modelGateway
+      ? await embedTexts(
+          this.modelGateway,
+          evidenceResults.map((evidence) => evidence.evidenceSummary),
+          {
+            expectedDimensions: EVIDENCE_EMBEDDING_DIMENSIONS,
+            ignoredProviders: ["mock"],
+            timeoutMs: 30_000,
+          },
+        )
+      : evidenceResults.map(() => undefined);
 
     const retrievalTimestamp = new Date(fetchResult.retrievedAt);
     const retentionPolicy = await this.prisma.retentionPolicy.findUnique({
@@ -156,7 +178,7 @@ export class EvidenceIngestionProcessor {
       });
 
       const evidenceItemIds: string[] = [];
-      for (const evidence of evidenceResults) {
+      for (const [index, evidence] of evidenceResults.entries()) {
         const item = await tx.evidenceItem.create({
           data: {
             confidenceScore: evidence.confidenceScore,
@@ -176,6 +198,15 @@ export class EvidenceIngestionProcessor {
             workspaceId: payload.workspaceId,
           },
         });
+        const embedding = embeddings[index];
+        if (embedding) {
+          await writeEvidenceEmbedding(tx, {
+            embedding,
+            evidenceId: item.id,
+            tenantId: payload.tenantId,
+            workspaceId: payload.workspaceId,
+          });
+        }
         evidenceItemIds.push(item.id);
       }
 

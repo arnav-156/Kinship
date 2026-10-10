@@ -32,9 +32,11 @@ export interface EvidenceRetrievalCandidate {
   evidenceId: string;
   evidenceSummary: string;
   freshnessScore: number;
+  lexicalRank?: number;
   lexicalScore?: number;
   metadataScore?: number;
   retrievalTimestamp?: Date | string;
+  semanticRank?: number;
   semanticScore?: number;
   sourceType?: string;
 }
@@ -44,6 +46,7 @@ export interface RankEvidenceOptions {
   freshnessWeight?: number;
   lexicalWeight?: number;
   metadataWeight?: number;
+  reciprocalRankConstant?: number;
   semanticWeight?: number;
 }
 
@@ -110,6 +113,7 @@ const DEFAULT_RANKING_WEIGHTS: Required<RankEvidenceOptions> = {
   freshnessWeight: 0.2,
   lexicalWeight: 0.3,
   metadataWeight: 0.1,
+  reciprocalRankConstant: 60,
   semanticWeight: 0.15,
 };
 
@@ -118,6 +122,9 @@ export function rankEvidenceCandidates(
   options: RankEvidenceOptions = {},
 ): EvidenceSearchResult[] {
   const weights = { ...DEFAULT_RANKING_WEIGHTS, ...options };
+  const fusionModalityCount = candidates.some((candidate) => candidate.semanticRank !== undefined)
+    ? 2
+    : 1;
   return candidates
     .map((candidate) => {
       const freshnessScore = scoreFreshness(candidate.freshnessScore, candidate.retrievalTimestamp);
@@ -125,9 +132,20 @@ export function rankEvidenceCandidates(
       const lexicalScore = clamp01(candidate.lexicalScore ?? 0);
       const metadataScore = clamp01(candidate.metadataScore ?? 0);
       const semanticScore = clamp01(candidate.semanticScore ?? 0);
+      const hasRetrievalRanks =
+        candidate.lexicalRank !== undefined || candidate.semanticRank !== undefined;
+      const retrievalScore = hasRetrievalRanks
+        ? reciprocalRankFusionScore(
+            [candidate.lexicalRank, candidate.semanticRank],
+            fusionModalityCount,
+            weights.reciprocalRankConstant,
+          )
+        : undefined;
+      const retrievalContribution = hasRetrievalRanks
+        ? (retrievalScore ?? 0) * (weights.lexicalWeight + weights.semanticWeight)
+        : lexicalScore * weights.lexicalWeight + semanticScore * weights.semanticWeight;
       const rankScore =
-        lexicalScore * weights.lexicalWeight +
-        semanticScore * weights.semanticWeight +
+        retrievalContribution +
         metadataScore * weights.metadataWeight +
         freshnessScore * weights.freshnessWeight +
         confidenceScore * weights.confidenceWeight;
@@ -143,6 +161,7 @@ export function rankEvidenceCandidates(
           freshnessScore,
           lexicalScore,
           metadataScore,
+          retrievalScore,
           semanticScore,
         }),
         sourceType: candidate.sourceType,
@@ -150,6 +169,23 @@ export function rankEvidenceCandidates(
       };
     })
     .sort((left, right) => right.rankScore - left.rankScore);
+}
+
+export function reciprocalRankFusionScore(
+  ranks: Array<number | undefined>,
+  modalityCount: number,
+  constant = 60,
+): number {
+  if (!Number.isInteger(modalityCount) || modalityCount < 1) return 0;
+  if (!Number.isFinite(constant) || constant < 0) return 0;
+
+  const contribution = ranks.reduce<number>(
+    (sum, rank) =>
+      sum + (rank !== undefined && Number.isInteger(rank) && rank > 0 ? 1 / (constant + rank) : 0),
+    0,
+  );
+  const maximum = modalityCount / (constant + 1);
+  return roundScore(maximum > 0 ? contribution / maximum : 0);
 }
 
 export function scoreFreshness(
@@ -385,6 +421,7 @@ function buildRankingReasons(scores: {
   freshnessScore: number;
   lexicalScore: number;
   metadataScore: number;
+  retrievalScore?: number;
   semanticScore: number;
 }): string[] {
   const reasons = [];
@@ -393,6 +430,9 @@ function buildRankingReasons(scores: {
   }
   if (scores.semanticScore > 0) {
     reasons.push("semantic similarity");
+  }
+  if (scores.retrievalScore !== undefined) {
+    reasons.push("reciprocal rank fusion");
   }
   if (scores.metadataScore > 0) {
     reasons.push("metadata match");

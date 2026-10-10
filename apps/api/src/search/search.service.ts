@@ -1,6 +1,18 @@
-﻿import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+﻿import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  Optional,
+} from "@nestjs/common";
+import type { ModelGateway } from "@relationship/ai";
 import type { AuthenticatedPrincipal } from "@relationship/auth";
-import type { Prisma, PrismaClient, SourceType } from "@relationship/db";
+import {
+  EVIDENCE_EMBEDDING_DIMENSIONS,
+  searchHybridEvidence,
+  type PrismaClient,
+  type SourceType,
+} from "@relationship/db";
 import { canPerformWorkspaceAction } from "@relationship/policy";
 import {
   buildRetrievalContext,
@@ -12,24 +24,27 @@ import {
   type EvidenceSearchResult,
 } from "@relationship/search";
 
+import { MODEL_GATEWAY } from "../ai/ai.module";
 import { PRISMA_CLIENT } from "../database/prisma.token";
 import type { SearchEvidenceDto, SearchProspectsDto, SearchSimilarPeopleDto } from "./dto";
 
 @Injectable()
 export class SearchService {
-  constructor(@Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
+    @Optional() @Inject(MODEL_GATEWAY) private readonly modelGateway?: ModelGateway,
+  ) {}
 
   async searchEvidence(principal: AuthenticatedPrincipal, input: SearchEvidenceDto) {
     this.assertCanReadWorkspace(principal, input.workspaceId);
-    const evidence = await this.prisma.evidenceItem.findMany({
-      include: {
-        entity: true,
-      },
-      orderBy: {
-        retrievalTimestamp: "desc",
-      },
-      take: expandedLimit(input.limit),
-      where: this.buildEvidenceWhere(principal, input),
+    const queryEmbedding = await this.embedQuery(input.query);
+    const evidence = await searchHybridEvidence(this.prisma, {
+      candidateLimit: expandedLimit(input.limit),
+      query: input.query,
+      queryEmbedding,
+      sourceTypes: input.sourceTypes as SourceType[] | undefined,
+      tenantId: principal.tenantId,
+      workspaceId: input.workspaceId,
     });
 
     const results = rankEvidenceCandidates(
@@ -38,8 +53,7 @@ export class SearchService {
           item.evidenceSummary,
           item.sourceIdentifier,
           item.sourceUrl,
-          item.entity.canonicalName,
-          item.entity.description,
+          item.entityName,
         ]
           .filter(Boolean)
           .join(" ");
@@ -47,12 +61,15 @@ export class SearchService {
         return {
           confidenceScore: item.confidenceScore,
           entityId: item.entityId,
-          evidenceId: item.id,
+          evidenceId: item.evidenceId,
           evidenceSummary: item.evidenceSummary,
           freshnessScore: item.freshnessScore,
+          lexicalRank: item.lexicalRank ?? undefined,
           lexicalScore: lexicalMatchScore(input.query, searchableText),
           metadataScore: metadataMatchScore(input.query, item.sourceIdentifier, item.sourceUrl),
           retrievalTimestamp: item.retrievalTimestamp,
+          semanticRank: item.semanticRank ?? undefined,
+          semanticScore: item.semanticScore ?? undefined,
           sourceType: item.sourceType,
         };
       }),
@@ -60,6 +77,7 @@ export class SearchService {
 
     return {
       context: buildRetrievalContext(results),
+      retrievalMode: queryEmbedding ? "hybrid" : "lexical",
       results,
     };
   }
@@ -175,53 +193,22 @@ export class SearchService {
       .slice(0, input.limit ?? 20);
   }
 
-  private buildEvidenceWhere(
-    principal: AuthenticatedPrincipal,
-    input: SearchEvidenceDto,
-  ): Prisma.EvidenceItemWhereInput {
-    const query = input.query.trim();
-    const textSearch =
-      query.length > 0
-        ? [
-            {
-              evidenceSummary: {
-                contains: query,
-                mode: "insensitive" as const,
-              },
-            },
-            {
-              sourceIdentifier: {
-                contains: query,
-                mode: "insensitive" as const,
-              },
-            },
-            {
-              sourceUrl: {
-                contains: query,
-                mode: "insensitive" as const,
-              },
-            },
-            {
-              entity: {
-                canonicalName: {
-                  contains: query,
-                  mode: "insensitive" as const,
-                },
-              },
-            },
-          ]
-        : undefined;
-
-    return {
-      OR: textSearch,
-      sourceType: input.sourceTypes
-        ? {
-            in: input.sourceTypes as SourceType[],
-          }
-        : undefined,
-      tenantId: principal.tenantId,
-      workspaceId: input.workspaceId,
-    };
+  private async embedQuery(query: string): Promise<number[] | undefined> {
+    if (!this.modelGateway) return undefined;
+    try {
+      const response = await this.modelGateway.embedText({ input: query, timeoutMs: 10_000 });
+      if (
+        response.provider === "mock" ||
+        response.dimensions !== EVIDENCE_EMBEDDING_DIMENSIONS ||
+        response.embedding.length !== EVIDENCE_EMBEDDING_DIMENSIONS ||
+        response.embedding.some((value) => !Number.isFinite(value))
+      ) {
+        return undefined;
+      }
+      return response.embedding;
+    } catch {
+      return undefined;
+    }
   }
 
   private buildResolutionInput(

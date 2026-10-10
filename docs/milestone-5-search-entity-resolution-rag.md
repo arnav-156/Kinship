@@ -36,7 +36,7 @@ Weaker signals can trigger review but not automatic identity merging:
 
 LLM suggestions are reserved for explanation or triage in later milestones. They are not sufficient for identity resolution.
 
-The identity operator utility is documented in `docs/identity-resolution-review-utility.md`. Embedding maintenance is documented in `docs/embedding-maintenance.md`. Search relevance evaluation is documented in `docs/search-relevance-evaluation.md`. The later durable database/API/UI identity review workflow and runtime vector query/rank-fusion path remain explicitly out of scope.
+The identity operator utility is documented in `docs/identity-resolution-review-utility.md`. Embedding maintenance is documented in `docs/embedding-maintenance.md`. Search relevance evaluation is documented in `docs/search-relevance-evaluation.md`. The runtime vector query and rank-fusion path was subsequently delivered in `docs/production-milestone-8-hybrid-retrieval.md`; the durable database/API/UI identity review workflow remains out of scope.
 
 ## RAG Boundary
 

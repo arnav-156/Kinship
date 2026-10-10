@@ -78,6 +78,9 @@ jobs:
       - name: Prisma migration check
         run: corepack pnpm db:migration:check
 
+      - name: Apply Prisma migrations
+        run: corepack pnpm --filter @relationship/db exec prisma migrate deploy --config prisma.config.ts
+
       - name: Lint
         run: corepack pnpm lint
 
@@ -92,6 +95,11 @@ jobs:
 
       - name: Test
         run: corepack pnpm test
+
+      - name: Vector search integration
+        env:
+          RUN_VECTOR_INTEGRATION: "true"
+        run: corepack pnpm --filter @relationship/db exec vitest run src/vector-search.integration.spec.ts
 
       - name: Object storage integration
         env:

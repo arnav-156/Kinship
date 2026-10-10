@@ -29,12 +29,8 @@ describe("SearchService", () => {
   });
 
   it("scopes evidence search by tenant and workspace", async () => {
-    const findMany = vi.fn().mockResolvedValue([]);
-    const service = new SearchService({
-      evidenceItem: {
-        findMany,
-      },
-    } as never);
+    const queryRaw = vi.fn().mockResolvedValue([]);
+    const service = new SearchService({ $queryRaw: queryRaw } as never);
 
     await service.searchEvidence(principal, {
       query: "founder",
@@ -42,17 +38,52 @@ describe("SearchService", () => {
       workspaceId: "workspace_1",
     });
 
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          sourceType: {
-            in: ["github"],
-          },
-          tenantId: "tenant_1",
-          workspaceId: "workspace_1",
-        }),
-      }),
+    const query = queryRaw.mock.calls[0]?.[0] as { sql: string; values: unknown[] };
+    expect(query.sql).toContain('e."tenant_id" =');
+    expect(query.sql).toContain('e."workspace_id" =');
+    expect(query.sql).toContain('e."source_type" IN');
+    expect(query.values).toContain("tenant_1");
+    expect(query.values).toContain("workspace_1");
+    expect(query.values).toContain("github");
+  });
+
+  it("uses pgvector retrieval when a production-sized query embedding is available", async () => {
+    const queryRaw = vi.fn().mockResolvedValue([]);
+    const embedText = vi.fn().mockResolvedValue({
+      dimensions: 1536,
+      embedding: Array.from({ length: 1536 }, () => 0.01),
+      model: "fixture-embedding",
+      provider: "openai-compatible",
+    });
+    const service = new SearchService({ $queryRaw: queryRaw } as never, { embedText } as never);
+
+    const result = await service.searchEvidence(principal, {
+      query: "database maintainer",
+      workspaceId: "workspace_1",
+    });
+
+    const query = queryRaw.mock.calls[0]?.[0] as { sql: string };
+    expect(embedText).toHaveBeenCalledWith({ input: "database maintainer", timeoutMs: 10_000 });
+    expect(query.sql).toContain('e."embedding" <=>');
+    expect(result.retrievalMode).toBe("hybrid");
+  });
+
+  it("falls back to indexed lexical retrieval when embedding generation fails", async () => {
+    const queryRaw = vi.fn().mockResolvedValue([]);
+    const service = new SearchService(
+      { $queryRaw: queryRaw } as never,
+      { embedText: vi.fn().mockRejectedValue(new Error("provider unavailable")) } as never,
     );
+
+    const result = await service.searchEvidence(principal, {
+      query: "database maintainer",
+      workspaceId: "workspace_1",
+    });
+
+    const query = queryRaw.mock.calls[0]?.[0] as { sql: string };
+    expect(query.sql).toContain('e."search_vector" @@');
+    expect(query.sql).not.toContain('e."embedding" <=>');
+    expect(result.retrievalMode).toBe("lexical");
   });
 
   it("returns explainable deterministic signals for similar people", async () => {

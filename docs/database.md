@@ -25,6 +25,8 @@ The initial migration enables `pgvector`, creates `evidence_items.embedding vect
 
 The operational backfill/reindex command and checkpoint recovery procedure are documented in `docs/embedding-maintenance.md`.
 
+New evidence is embedded during API and durable-worker ingestion when the production embedding provider is configured. Runtime evidence search retrieves bounded full-text and cosine-similarity candidate sets, fuses their ranks, and falls back to full-text retrieval during query-provider failures. The operational contract is documented in `docs/production-milestone-8-hybrid-retrieval.md`.
+
 ## Commands
 
 ```bash
