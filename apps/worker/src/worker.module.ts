@@ -39,6 +39,15 @@ import { WORKER_OBJECT_STORAGE } from "./worker-storage.token";
           baseUrl: config.OPENAI_BASE_URL,
           chatModel: config.OPENAI_CHAT_MODEL,
           embeddingModel: config.OPENAI_EMBEDDING_MODEL,
+          fallback: config.AI_FALLBACK_PROVIDER
+            ? {
+                apiKey: config.AI_FALLBACK_API_KEY,
+                baseUrl: config.AI_FALLBACK_BASE_URL,
+                chatModel: config.AI_FALLBACK_CHAT_MODEL,
+                embeddingModel: config.AI_FALLBACK_EMBEDDING_MODEL,
+                provider: config.AI_FALLBACK_PROVIDER,
+              }
+            : undefined,
           provider: config.AI_PROVIDER,
         };
         return createModelGateway(options);

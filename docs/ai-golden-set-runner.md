@@ -18,6 +18,8 @@ Run the deterministic CI baseline:
 corepack pnpm ai:golden run packages/ai/fixtures/ai-golden-set.json --provider mock
 ```
 
+This exact command is a required GitHub Actions step for every pull request and push to `main`. Its source-controlled thresholds are release gates: any metric failure exits with status `2` and fails CI.
+
 Write a report without overwriting an existing artifact:
 
 ```bash
@@ -67,6 +69,8 @@ corepack pnpm ai:golden run packages/ai/fixtures/ai-golden-set.json \
 ```
 
 The configured `OPENAI_BASE_URL` is honored. Live output, latency, token estimates, and cost can vary between runs, so preserve reports as immutable artifacts and compare their suite digest, provider, model, and pricing assumption.
+
+Run this credentialed check in the trusted production-promotion environment. Pull-request CI deliberately uses the deterministic provider so untrusted changes never receive a production model credential.
 
 ## Threshold overrides
 

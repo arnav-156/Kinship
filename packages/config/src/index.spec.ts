@@ -33,4 +33,24 @@ describe("loadConfig", () => {
       }).API_CORS_ORIGIN,
     ).toEqual(["https://app.example.com", "https://admin.example.com"]);
   });
+
+  test("requires fallback credentials when a fallback provider is enabled", () => {
+    expect(() =>
+      loadConfig({
+        ...validEnv,
+        AI_FALLBACK_PROVIDER: "openai-compatible",
+      }),
+    ).toThrow(/AI_FALLBACK_API_KEY is required/);
+
+    expect(
+      loadConfig({
+        ...validEnv,
+        AI_FALLBACK_API_KEY: "secondary-key",
+        AI_FALLBACK_PROVIDER: "openai-compatible",
+      }),
+    ).toMatchObject({
+      AI_FALLBACK_API_KEY: "secondary-key",
+      AI_FALLBACK_PROVIDER: "openai-compatible",
+    });
+  });
 });

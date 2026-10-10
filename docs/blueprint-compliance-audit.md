@@ -164,8 +164,8 @@ The web interface presents a polished relationship workspace, discovery, trust/c
 | Graph store               | Relational affiliations only                                                                             | DEFERRED | Dedicated graph/path scoring only when justified                                 |
 | Object storage            | S3-compatible create-only snapshot writes, lifecycle metadata, reads, and retention deletion             | PARTIAL  | Signed reads, bucket hardening, and recovery/integration drills                  |
 | Redis/cache               | Compose/config presence                                                                                  | PARTIAL  | Client usage, cache strategy, distributed rate limit, queue backing              |
-| AI orchestration          | Provider interface, structured prompts, validation, run records                                          | PARTIAL  | Routing, fallback, streaming, caching, tools, eval and cost control              |
-| Evaluation system         | Eval tables only                                                                                         | PARTIAL  | Runner, golden sets, CI gates, dashboards, human feedback loop                   |
+| AI orchestration          | Provider interface, structured prompts, validation, run records, bounded fallback                        | PARTIAL  | Task routing, streaming, caching, tools, circuit breaking, and cost control      |
+| Evaluation system         | Golden-set runner, labeled suite, CI thresholds, and user feedback capture                               | PARTIAL  | Live promotion evidence, drift dashboards, and budget enforcement                |
 | Audit/provenance          | Evidence provenance and audit records                                                                    | PARTIAL  | Immutable storage guarantees, comprehensive coverage, export                     |
 | Admin console             | Settings surface only                                                                                    | PARTIAL  | User, role, policy, connector, retention, eval, and system health views          |
 | Worker                    | Persistent evidence, brief, draft, connector-sync, and retention processors                              | PARTIAL  | Embedding and notification processors                                            |
@@ -220,16 +220,16 @@ The blueprint expects idempotent jobs, retries, dead-letter handling, resumabili
 | Prompt-injection defense      | Untrusted evidence delimiters, sanitization, suspicious-pattern checks               | FULL    | Strong current-stage control; adversarial regression corpus is missing             |
 | Intent classification         | Not operational as a distinct stage                                                  | MISSING | Search/brief requests do not use the planned intent router                         |
 | Query planning/tool use       | No production planner or tool orchestration                                          | MISSING | Limits multi-source retrieval and explainable execution                            |
-| Hybrid retrieval              | Lexical only in runtime path                                                         | PARTIAL | The main RAG quality gap                                                           |
+| Hybrid retrieval              | Indexed lexical and pgvector candidates with reciprocal-rank fusion                  | FULL    | Query embedding failures degrade to lexical retrieval                              |
 | Model routing                 | Static/provider config                                                               | MISSING | No task/latency/cost/risk-based selection                                          |
-| Provider/model fallback       | No failover chain or circuit breaker                                                 | MISSING | Provider failure can block AI workflows                                            |
+| Provider/model fallback       | One optional classified, bounded OpenAI-compatible failover attempt                  | PARTIAL | No task routing, health-aware circuit breaker, or multi-provider telemetry         |
 | Streaming                     | Not implemented end to end                                                           | MISSING | Higher perceived latency and limited progress feedback                             |
 | Caching                       | No semantic/output cache                                                             | MISSING | Repeated work increases cost and latency                                           |
-| Retry/repair                  | Validation-oriented repair/retry behavior exists in parts                            | PARTIAL | Needs bounded provider retry policy, jitter, and classified failures               |
+| Retry/repair                  | One structured-output repair plus classified one-attempt provider fallback           | PARTIAL | No same-provider backoff/jitter or health-aware circuit breaking                   |
 | Confidence and explainability | Evidence confidence and citations are visible                                        | PARTIAL | No calibrated answer-level confidence or claim-by-claim inspection UI              |
 | Long-term memory              | Relational evidence base exists; notes/interactions are incomplete                   | PARTIAL | Product C memory is not durable end to end                                         |
-| Evaluation                    | Tables and test fixtures only                                                        | PARTIAL | No golden-set runner, quality gates, drift/cost tracking, or dashboard             |
-| User feedback loop            | Not implemented                                                                      | MISSING | No explicit helpfulness/accuracy/edit-distance learning signal                     |
+| Evaluation                    | Labeled golden-set runner with quality/latency/cost thresholds and required CI gate  | PARTIAL | Live promotion evidence, drift tracking, and dashboard remain                      |
+| User feedback loop            | Explicit helpfulness, accuracy, and edit-distance capture                            | FULL    | Feedback is stored for later analysis                                              |
 | Token and cost controls       | AI-run fields exist but are not fully populated/enforced                             | PARTIAL | No budgets, quotas, alerts, or task-level cost policy                              |
 | Safety boundary               | AI does not decide compliance, permissions, suppression, sending, or identity merges | FULL    | Correct and essential architectural choice                                         |
 
@@ -474,8 +474,8 @@ No critical exploitable vulnerability was proven by this audit. The finding is t
 - [ ] Cross-browser and mobile journey tests.
 - [ ] Accessibility tests using automated tooling plus manual screen-reader checks.
 - [ ] Load and soak tests against the blueprint latency targets.
-- [ ] AI golden sets for groundedness, citation accuracy, unsupported claims, injection resistance, latency, and cost.
-- [ ] Model/provider failure, timeout, malformed output, quota, and fallback tests.
+- [x] AI golden sets for groundedness, citation accuracy, unsupported claims, injection resistance, latency, and cost; deterministic thresholds gate CI.
+- [x] Model/provider failure, timeout, malformed output, quota, and bounded fallback tests.
 - [ ] Security tests for XSS, CSRF assumptions, SSRF variants, authz, rate limits, secret leakage, and dependency/container posture.
 - [ ] Recovery tests for DB restart, worker restart, connector outage, AI outage, duplicate request, and partial shutdown.
 - [ ] Migration dry-run and rollback/forward-fix rehearsal in CI or staging.
@@ -576,8 +576,8 @@ Effort assumes a small senior cross-functional team. `S` is 1-3 engineering days
 ### Milestone 3 - Production AI and retrieval quality (3-5 weeks)
 
 - Completed: operationalize embeddings and pgvector hybrid retrieval with rank fusion.
-- Add golden-set evaluations, feedback capture, model/provider failure tests, and release thresholds.
-- Add task-based routing, bounded fallback, streaming, token/cost accounting, and budgets.
+- Completed: golden-set evaluations, feedback capture, model/provider failure tests, and CI release thresholds.
+- Add task-based routing, streaming, token/cost accounting, budgets, and circuit-breaker health policy; bounded one-attempt fallback is complete.
 - Add claim-level evidence inspection and calibrated confidence where measurable.
 
 **Exit:** Brief and draft quality, grounding, latency, and cost are measured rather than assumed.

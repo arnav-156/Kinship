@@ -93,6 +93,9 @@ jobs:
       - name: Security regression corpus
         run: corepack pnpm security:regression
 
+      - name: AI golden-set release gate
+        run: corepack pnpm ai:golden run packages/ai/fixtures/ai-golden-set.json --provider mock
+
       - name: Test
         run: corepack pnpm test
 

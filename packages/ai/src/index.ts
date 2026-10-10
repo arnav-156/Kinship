@@ -55,12 +55,34 @@ export interface ModelGateway {
   generateText(request: GenerateTextRequest): Promise<GenerateTextResponse>;
 }
 
-export interface ModelGatewayOptions {
+export type AiProviderFailureKind =
+  "authentication" | "invalid-request" | "malformed-output" | "quota" | "timeout" | "unavailable";
+
+export class AiProviderError extends Error {
+  readonly kind: AiProviderFailureKind;
+  readonly statusCode?: number;
+
+  constructor(
+    message: string,
+    options: { cause?: unknown; kind: AiProviderFailureKind; statusCode?: number },
+  ) {
+    super(message, { cause: options.cause });
+    this.name = "AiProviderError";
+    this.kind = options.kind;
+    this.statusCode = options.statusCode;
+  }
+}
+
+export interface SingleModelGatewayOptions {
   apiKey?: string;
   baseUrl?: string;
   chatModel?: string;
   embeddingModel?: string;
   provider?: "mock" | "openai-compatible";
+}
+
+export interface ModelGatewayOptions extends SingleModelGatewayOptions {
+  fallback?: SingleModelGatewayOptions;
 }
 
 export interface EmbedTextsOptions {
@@ -190,6 +212,13 @@ export interface PromptInput {
 }
 
 export function createModelGateway(options: ModelGatewayOptions = {}): ModelGateway {
+  const primary = createSingleModelGateway(options);
+  return options.fallback
+    ? new FallbackModelGateway(primary, createSingleModelGateway(options.fallback))
+    : primary;
+}
+
+function createSingleModelGateway(options: SingleModelGatewayOptions): ModelGateway {
   const provider = options.provider ?? "mock";
   if (provider === "openai-compatible") {
     return new OpenAiCompatibleGateway(options);
@@ -472,11 +501,41 @@ export async function generateDraftMessage(
   };
 }
 
+class FallbackModelGateway implements ModelGateway {
+  constructor(
+    private readonly primary: ModelGateway,
+    private readonly fallback: ModelGateway,
+  ) {}
+
+  embedText(request: EmbeddingRequest): Promise<EmbeddingResponse> {
+    return runWithFallback(
+      () => this.primary.embedText(request),
+      () => this.fallback.embedText(request),
+    );
+  }
+
+  generateStructured<TSchema extends z.ZodTypeAny>(
+    request: GenerateStructuredRequest<TSchema>,
+  ): Promise<z.infer<TSchema>> {
+    return runWithFallback(
+      () => this.primary.generateStructured(request),
+      () => this.fallback.generateStructured(request),
+    );
+  }
+
+  generateText(request: GenerateTextRequest): Promise<GenerateTextResponse> {
+    return runWithFallback(
+      () => this.primary.generateText(request),
+      () => this.fallback.generateText(request),
+    );
+  }
+}
+
 class MockModelGateway implements ModelGateway {
   private readonly chatModel: string;
   private readonly embeddingModel: string;
 
-  constructor(options: ModelGatewayOptions) {
+  constructor(options: SingleModelGatewayOptions) {
     this.chatModel = options.chatModel ?? "mock-relationship-model";
     this.embeddingModel = options.embeddingModel ?? "mock-embedding-model";
   }
@@ -539,7 +598,7 @@ class OpenAiCompatibleGateway implements ModelGateway {
   private readonly chatModel: string;
   private readonly embeddingModel: string;
 
-  constructor(options: ModelGatewayOptions) {
+  constructor(options: SingleModelGatewayOptions) {
     this.apiKey = options.apiKey;
     this.baseUrl = options.baseUrl ?? "https://api.openai.com/v1";
     this.chatModel = options.chatModel ?? "gpt-4.1-mini";
@@ -547,16 +606,22 @@ class OpenAiCompatibleGateway implements ModelGateway {
   }
 
   async embedText(request: EmbeddingRequest): Promise<EmbeddingResponse> {
-    const response = await this.requestJson("/embeddings", {
-      input: request.input,
-      model: this.embeddingModel,
-    });
-    const data = z
-      .object({
+    const response = await this.requestJson(
+      "/embeddings",
+      {
+        input: request.input,
+        model: this.embeddingModel,
+      },
+      request.timeoutMs,
+    );
+    const data = parseProviderPayload(
+      z.object({
         data: z.array(z.object({ embedding: z.array(z.number()) })).min(1),
         model: z.string().optional(),
-      })
-      .parse(response);
+      }),
+      response,
+      "embedding",
+    );
     const embedding = data.data[0]?.embedding ?? [];
 
     return {
@@ -594,29 +659,34 @@ class OpenAiCompatibleGateway implements ModelGateway {
       return repairedParsed.value;
     }
 
-    throw new Error(
+    throw new AiProviderError(
       `AI provider returned invalid structured output after repair: ${repairedParsed.error.message}`,
+      { cause: repairedParsed.error, kind: "malformed-output" },
     );
   }
 
   async generateText(request: GenerateTextRequest): Promise<GenerateTextResponse> {
     const startedAt = Date.now();
-    const response = await this.requestJson("/chat/completions", {
-      messages: [
-        {
-          content: request.systemPrompt ?? groundedSystemPrompt(),
-          role: "system",
-        },
-        {
-          content: request.prompt,
-          role: "user",
-        },
-      ],
-      model: this.chatModel,
-      temperature: request.temperature ?? 0.2,
-    });
-    const data = z
-      .object({
+    const response = await this.requestJson(
+      "/chat/completions",
+      {
+        messages: [
+          {
+            content: request.systemPrompt ?? groundedSystemPrompt(),
+            role: "system",
+          },
+          {
+            content: request.prompt,
+            role: "user",
+          },
+        ],
+        model: this.chatModel,
+        temperature: request.temperature ?? 0.2,
+      },
+      request.timeoutMs,
+    );
+    const data = parseProviderPayload(
+      z.object({
         choices: z.array(z.object({ message: z.object({ content: z.string() }) })).min(1),
         model: z.string().optional(),
         usage: z
@@ -625,8 +695,10 @@ class OpenAiCompatibleGateway implements ModelGateway {
             prompt_tokens: z.number().optional(),
           })
           .optional(),
-      })
-      .parse(response);
+      }),
+      response,
+      "chat completion",
+    );
 
     return {
       model: data.model ?? this.chatModel,
@@ -641,26 +713,128 @@ class OpenAiCompatibleGateway implements ModelGateway {
     };
   }
 
-  private async requestJson(path: string, body: unknown): Promise<unknown> {
+  private async requestJson(
+    path: string,
+    body: unknown,
+    requestedTimeoutMs?: number,
+  ): Promise<unknown> {
     if (!this.apiKey) {
-      throw new Error("OPENAI_API_KEY is required for the openai-compatible AI provider");
+      throw new AiProviderError(
+        "OPENAI_API_KEY is required for the openai-compatible AI provider",
+        { kind: "authentication" },
+      );
     }
 
-    const response = await fetch(`${this.baseUrl.replace(/\/$/, "")}${path}`, {
-      body: JSON.stringify(body),
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-    });
+    const timeoutMs = resolveProviderTimeout(requestedTimeoutMs);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(`${this.baseUrl.replace(/\/$/, "")}${path}`, {
+        body: JSON.stringify(body),
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+        signal: controller.signal,
+      });
 
-    if (!response.ok) {
-      throw new Error(`AI provider request failed with ${response.status}`);
+      if (!response.ok) {
+        throw providerHttpError(response.status);
+      }
+
+      try {
+        return await response.json();
+      } catch (error) {
+        throw new AiProviderError("AI provider returned a non-JSON response", {
+          cause: error,
+          kind: "malformed-output",
+        });
+      }
+    } catch (error) {
+      if (error instanceof AiProviderError) {
+        throw error;
+      }
+      if (controller.signal.aborted || isAbortError(error)) {
+        throw new AiProviderError(`AI provider request timed out after ${timeoutMs}ms`, {
+          cause: error,
+          kind: "timeout",
+        });
+      }
+      throw new AiProviderError("AI provider request failed", {
+        cause: error,
+        kind: "unavailable",
+      });
+    } finally {
+      clearTimeout(timeout);
     }
-
-    return response.json();
   }
+}
+
+async function runWithFallback<T>(
+  primary: () => Promise<T>,
+  fallback: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await primary();
+  } catch (error) {
+    if (!(error instanceof AiProviderError) || !isFallbackEligible(error.kind)) {
+      throw error;
+    }
+    return fallback();
+  }
+}
+
+function isFallbackEligible(kind: AiProviderFailureKind): boolean {
+  return ["malformed-output", "quota", "timeout", "unavailable"].includes(kind);
+}
+
+function providerHttpError(statusCode: number): AiProviderError {
+  const kind: AiProviderFailureKind =
+    statusCode === 401 || statusCode === 403
+      ? "authentication"
+      : statusCode === 402 || statusCode === 429
+        ? "quota"
+        : statusCode === 408
+          ? "timeout"
+          : statusCode >= 500
+            ? "unavailable"
+            : "invalid-request";
+  return new AiProviderError(`AI provider request failed with ${statusCode}`, {
+    kind,
+    statusCode,
+  });
+}
+
+function parseProviderPayload<TSchema extends z.ZodTypeAny>(
+  schema: TSchema,
+  value: unknown,
+  operation: string,
+): z.infer<TSchema> {
+  const parsed = schema.safeParse(value);
+  if (!parsed.success) {
+    throw new AiProviderError(`AI provider returned malformed ${operation} output`, {
+      cause: parsed.error,
+      kind: "malformed-output",
+    });
+  }
+  return parsed.data;
+}
+
+function resolveProviderTimeout(timeoutMs?: number): number {
+  if (timeoutMs === undefined) {
+    return 30_000;
+  }
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new AiProviderError("AI provider timeout must be a positive number", {
+      kind: "invalid-request",
+    });
+  }
+  return timeoutMs;
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError");
 }
 
 function groundedSystemPrompt(): string {

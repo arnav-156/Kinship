@@ -7,6 +7,7 @@ Milestone 6 adds evidence-grounded generation without making real provider crede
 - Provider-agnostic `@relationship/ai` model gateway.
 - Deterministic mock provider for local development and tests.
 - OpenAI-compatible provider for configured deployments.
+- Classified provider failures, request timeouts, and an optional one-attempt fallback provider.
 - Structured Zod schemas for relationship briefs, outreach angles, evidence claims, and draft messages.
 - Versioned prompt rendering with `relationship-brief-v1`.
 - Prompt-injection detection over retrieved evidence summaries.
@@ -44,6 +45,8 @@ OPENAI_API_KEY=...
 OPENAI_CHAT_MODEL=gpt-4.1-mini
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 ```
+
+Optional fallback configuration and the fail-closed policy are documented in `docs/production-milestone-9-ai-release-resilience.md`.
 
 Golden-set usage, label rules, metrics, thresholds, and live-provider safety are documented in `docs/ai-golden-set-runner.md`.
 Prompt registry ownership, comparison commands, risk gates, and promotion workflow are documented in `docs/prompt-registry-version-comparison.md`.
