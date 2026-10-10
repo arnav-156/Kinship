@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { contentHash, createS3ObjectStorage } from "./index";
 
 const enabled = process.env["RUN_STORAGE_INTEGRATION"] === "true";
-const body = new TextEncoder().encode(`minio-integration-${randomUUID()}`);
+const body = new TextEncoder().encode(`s3-integration-${randomUUID()}`);
 const hash = contentHash(body);
 const options = {
   accessKeyId: process.env["S3_ACCESS_KEY_ID"] ?? "minioadmin",
@@ -29,7 +29,7 @@ const bucketClient = new S3Client({
 let storedKey: string | undefined;
 let createdBucket = false;
 
-describe.runIf(enabled)("MinIO snapshot integration", () => {
+describe.runIf(enabled)("S3-compatible snapshot integration", () => {
   beforeAll(async () => {
     try {
       await bucketClient.send(new CreateBucketCommand({ Bucket: options.bucket }));
@@ -38,7 +38,9 @@ describe.runIf(enabled)("MinIO snapshot integration", () => {
       if (
         !error ||
         typeof error !== "object" ||
-        (error as { name?: string }).name !== "BucketAlreadyOwnedByYou"
+        !["BucketAlreadyExists", "BucketAlreadyOwnedByYou"].includes(
+          (error as { name?: string }).name ?? "",
+        )
       ) {
         throw error;
       }

@@ -28,37 +28,22 @@ services:
     volumes:
       - redis-data:/data
 
-  minio:
-    image: quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z
-    command: ["server", "/data", "--console-address", ":9001"]
+  object-storage:
+    image: ghcr.io/chrislusf/seaweedfs:4.48
+    command: ["mini", "-dir=/data"]
     environment:
-      MINIO_ROOT_PASSWORD: minioadmin
-      MINIO_ROOT_USER: minioadmin
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      S3_BUCKET: relationship-local
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:9333/cluster/status"]
       interval: 10s
       timeout: 5s
       retries: 10
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "${S3_API_PORT:-9000}:8333"
     volumes:
-      - minio-data:/data
-
-  minio-init:
-    image: quay.io/minio/mc:RELEASE.2024-11-21T17-21-54Z
-    depends_on:
-      minio:
-        condition: service_healthy
-    environment:
-      MINIO_ROOT_PASSWORD: minioadmin
-      MINIO_ROOT_USER: minioadmin
-      S3_BUCKET: relationship-local
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - >-
-        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" &&
-        mc mb --ignore-existing "local/$${S3_BUCKET}"
+      - object-storage-data:/data
 
   api:
     build:
@@ -69,10 +54,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      minio:
+      object-storage:
         condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
     env_file:
       - ../.env.example
     environment:
@@ -80,7 +63,7 @@ services:
       API_PORT: 4000
       DATABASE_URL: postgresql://relationship:relationship@postgres:5432/relationship
       REDIS_URL: redis://redis:6379
-      S3_ENDPOINT: http://minio:9000
+      S3_ENDPOINT: http://object-storage:8333
     healthcheck:
       test:
         [
@@ -102,16 +85,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      minio:
+      object-storage:
         condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
     env_file:
       - ../.env.example
     environment:
       DATABASE_URL: postgresql://relationship:relationship@postgres:5432/relationship
       REDIS_URL: redis://redis:6379
-      S3_ENDPOINT: http://minio:9000
+      S3_ENDPOINT: http://object-storage:8333
 
   scheduler:
     build:
@@ -125,7 +106,7 @@ services:
     environment:
       DATABASE_URL: postgresql://relationship:relationship@postgres:5432/relationship
       REDIS_URL: redis://redis:6379
-      S3_ENDPOINT: http://minio:9000
+      S3_ENDPOINT: http://object-storage:8333
 
   web:
     build:
@@ -140,6 +121,6 @@ services:
       - "${WEB_PORT:-3000}:3000"
 
 volumes:
-  minio-data:
+  object-storage-data:
   postgres-data:
   redis-data:

@@ -48,20 +48,22 @@ jobs:
       - name: Install
         run: corepack pnpm install --frozen-lockfile
 
-      - name: Start MinIO
+      - name: Start S3-compatible object storage
         run: |
-          docker run --detach --name relationship-minio \
-            --publish 9000:9000 \
-            --env MINIO_ROOT_USER="$S3_ACCESS_KEY_ID" \
-            --env MINIO_ROOT_PASSWORD="$S3_SECRET_ACCESS_KEY" \
-            quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z server /data
+          docker run --detach --name relationship-object-storage \
+            --publish 9000:8333 \
+            --env AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" \
+            --env AWS_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" \
+            --env S3_BUCKET="$S3_BUCKET" \
+            ghcr.io/chrislusf/seaweedfs:4.48 mini -dir=/data
           for attempt in {1..30}; do
-            if curl --fail --silent http://localhost:9000/minio/health/live >/dev/null; then
+            status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://localhost:9000/ || true)"
+            if [ "$status" != "000" ]; then
               exit 0
             fi
             sleep 1
           done
-          docker logs relationship-minio
+          docker logs relationship-object-storage
           exit 1
 
       - name: Prisma validate
@@ -94,7 +96,7 @@ jobs:
       - name: Object storage integration
         env:
           RUN_STORAGE_INTEGRATION: "true"
-        run: corepack pnpm --filter @relationship/storage exec vitest run src/minio.integration.spec.ts
+        run: corepack pnpm --filter @relationship/storage exec vitest run src/s3.integration.spec.ts
 
       - name: Build
         run: corepack pnpm build
