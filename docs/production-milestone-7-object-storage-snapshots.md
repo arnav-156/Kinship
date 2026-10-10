@@ -26,6 +26,6 @@ The database remains authoritative for mutable lifecycle state. Object metadata 
 
 Unit coverage verifies content-hash enforcement, deterministic scoped keys, create-only writes, idempotent replay, collision rejection, reads, deletes, API and worker persistence ordering, database metadata, and rollback behavior when object deletion fails. The local Compose path uses the same S3 adapter against MinIO.
 
-The opt-in MinIO integration specification is `packages/storage/src/minio.integration.spec.ts`. Start `minio` and `minio-init`, set `RUN_STORAGE_INTEGRATION=true`, and run the storage package tests to exercise create, replay, read, and delete against the real S3-compatible service.
+The opt-in MinIO integration specification is `packages/storage/src/minio.integration.spec.ts`. It creates an isolated bucket and exercises create, replay, read, delete, and health checks against the real S3-compatible service. CI starts MinIO and runs this specification on every change. For local use, start MinIO, set `RUN_STORAGE_INTEGRATION=true`, and run the storage package test directly.
 
 Production deployment must provision the bucket and grant only `GetObject`, `PutObject`, `HeadObject`, and `DeleteObject` for the `source-snapshots/v1/` prefix. Bucket versioning, encryption, access logging, recovery drills, and any signed-read endpoint remain deployment/security work rather than part of this ingestion slice.
