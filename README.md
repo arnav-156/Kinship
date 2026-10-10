@@ -50,4 +50,4 @@ corepack pnpm db:seed
 corepack pnpm docker:up
 ```
 
-The local stack includes PostgreSQL with pgvector, Redis, MinIO, API, scheduler, worker, and web services.
+The local stack includes PostgreSQL with pgvector, Redis, SeaweedFS S3-compatible object storage, API, scheduler, worker, and web services.

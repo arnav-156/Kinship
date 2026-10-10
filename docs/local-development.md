@@ -31,15 +31,14 @@ Web is available at `http://localhost:3000`.
 corepack pnpm docker:up
 ```
 
-The Compose stack starts PostgreSQL with pgvector, Redis, MinIO, API, scheduler, worker, and web. Every `SCHEDULER_INTERVAL_MS`, the scheduler enqueues due evidence-retention cleanup and explicitly enabled connector refreshes for the worker.
+The Compose stack starts PostgreSQL with pgvector, Redis, SeaweedFS S3-compatible object storage, API, scheduler, worker, and web. Every `SCHEDULER_INTERVAL_MS`, the scheduler enqueues due evidence-retention cleanup and explicitly enabled connector refreshes for the worker.
 
 If a port is already in use, override host ports before starting Compose:
 
 ```powershell
 $env:POSTGRES_PORT='55432'
 $env:REDIS_PORT='56379'
-$env:MINIO_API_PORT='59000'
-$env:MINIO_CONSOLE_PORT='59001'
+$env:S3_API_PORT='59000'
 corepack pnpm docker:up
 ```
 

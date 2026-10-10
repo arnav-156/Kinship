@@ -248,18 +248,18 @@ The blueprint expects idempotent jobs, retries, dead-letter handling, resumabili
 
 ### Deviations
 
-| Deviation                                                            | Classification                                        | Consequence                                                 | Recommendation                                                            |
-| -------------------------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Synchronous ingestion despite worker/queue contracts                 | Compromise                                            | API latency, restart fragility, and poor burst handling     | Move external fetch, extraction, embedding, and AI work into durable jobs |
-| Queue and worker are mostly structural                               | Compromise                                            | Architecture appears more complete than runtime behavior    | Implement one real end-to-end queue before adding more abstractions       |
-| Redis and object storage are configured but not used in core runtime | Compromise                                            | No shared cache/limit and no durable raw snapshot lifecycle | Wire only the blueprint-required paths and test recovery                  |
-| Search abstraction lacks runtime vector retrieval                    | Compromise                                            | Lower recall and weaker similar-person results              | Add pgvector first; introduce OpenSearch only when scale justifies it     |
-| Schema leads product/API substantially                               | Equivalent foundation                                 | Good forward compatibility, but can hide missing behavior   | Track schema-only capabilities explicitly and finish vertical slices      |
-| Frontend is concentrated in a very large client page                 | Compromise                                            | Higher regression risk and harder feature ownership         | Extract domain hooks/components without changing visual language          |
-| Browser-local state substitutes for server-backed workflows          | Regression against durable relationship-memory intent | Work is lost and collaboration cannot be trusted            | Move prospects, notes, drafts, preferences, and activity to APIs          |
-| Scheduler covers retention and connector refresh                     | Compromise                                            | Export/deletion and notifications are not yet recurring     | Extend the existing scheduler with measured, idempotent job families      |
-| No dedicated graph database                                          | Equivalent                                            | Avoids unnecessary current-stage complexity                 | Continue relational path modeling until measured need emerges             |
-| No analytics warehouse                                               | Equivalent                                            | Avoids premature infrastructure                             | Define events now; add warehouse at volume threshold                      |
+| Deviation                                                   | Classification                                        | Consequence                                               | Recommendation                                                            |
+| ----------------------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Synchronous ingestion despite worker/queue contracts        | Compromise                                            | API latency, restart fragility, and poor burst handling   | Move external fetch, extraction, embedding, and AI work into durable jobs |
+| Queue and worker are mostly structural                      | Compromise                                            | Architecture appears more complete than runtime behavior  | Implement one real end-to-end queue before adding more abstractions       |
+| Redis is configured but not used in core runtime            | Compromise                                            | No shared cache or distributed limit enforcement          | Wire only the blueprint-required paths and test recovery                  |
+| Search abstraction lacks runtime vector retrieval           | Compromise                                            | Lower recall and weaker similar-person results            | Add pgvector first; introduce OpenSearch only when scale justifies it     |
+| Schema leads product/API substantially                      | Equivalent foundation                                 | Good forward compatibility, but can hide missing behavior | Track schema-only capabilities explicitly and finish vertical slices      |
+| Frontend is concentrated in a very large client page        | Compromise                                            | Higher regression risk and harder feature ownership       | Extract domain hooks/components without changing visual language          |
+| Browser-local state substitutes for server-backed workflows | Regression against durable relationship-memory intent | Work is lost and collaboration cannot be trusted          | Move prospects, notes, drafts, preferences, and activity to APIs          |
+| Scheduler covers retention and connector refresh            | Compromise                                            | Export/deletion and notifications are not yet recurring   | Extend the existing scheduler with measured, idempotent job families      |
+| No dedicated graph database                                 | Equivalent                                            | Avoids unnecessary current-stage complexity               | Continue relational path modeling until measured need emerges             |
+| No analytics warehouse                                      | Equivalent                                            | Avoids premature infrastructure                           | Define events now; add warehouse at volume threshold                      |
 
 ### Coupling and maintainability
 
@@ -468,7 +468,7 @@ No critical exploitable vulnerability was proven by this audit. The finding is t
 
 - [ ] Real PostgreSQL integration suite covering migrations, transactions, constraints, tenant isolation, and concurrent updates.
 - [ ] Redis/queue integration tests for retry, idempotency, duplicate delivery, crash recovery, and dead letters.
-- [ ] Object-storage integration tests for snapshot immutability, lifecycle, failed writes, and restore.
+- [x] Object-storage verification covering live S3-compatible immutability/read/delete plus lifecycle and failure-path tests; see `docs/production-milestone-7-object-storage-snapshots.md`.
 - [ ] Connector contract tests using recorded fixtures and OAuth token failure states.
 - [ ] End-to-end browser tests for register/login, workspace, URL analysis, evidence review, brief, draft, suppression, and reload persistence.
 - [ ] Cross-browser and mobile journey tests.
