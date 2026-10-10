@@ -3,6 +3,7 @@ import { disconnectPrismaClient, getPrismaClient } from "@relationship/db";
 
 import { type RetentionAdminCliDependencies, runRetentionAdminCli } from "./admin-retention-cli";
 import { RetentionAdminUtility, type RetentionAdminTarget } from "./admin-retention";
+import { createConfiguredObjectStorage } from "../storage/storage.module";
 
 const SCENARIO_TENANT_ID = "fixture-tenant";
 const SCENARIO_WORKSPACE_ID = "fixture-workspace";
@@ -21,7 +22,11 @@ async function main(): Promise<void> {
 
   const utility: RetentionAdminCliDependencies["utility"] = scenario
     ? new ScenarioRetentionAdminUtility()
-    : new RetentionAdminUtility(getPrismaClient());
+    : new RetentionAdminUtility(
+        getPrismaClient(),
+        () => new Date(),
+        createConfiguredObjectStorage(),
+      );
 
   try {
     process.exitCode = await runRetentionAdminCli(args, { utility });

@@ -19,7 +19,7 @@ Milestone 2 adds the first durable domain layer: a Prisma/PostgreSQL schema, mig
 
 Milestone 3 adds API application services for auth, workspace access, and audit. Controllers remain thin; auth and workspace services own use-case orchestration. RBAC rules live in `packages/policy` and are consumed by the API.
 
-Milestone 4 adds the connector and evidence ingestion boundary. Source connectors live in `packages/connectors`; API evidence services orchestrate connector policy checks, fetch, normalization, evidence extraction, source snapshots, evidence items, background job rows, and audit events.
+Milestone 4 adds the connector and evidence ingestion boundary. Source connectors live in `packages/connectors`; API and worker ingestion services orchestrate connector policy checks, fetch, immutable S3-compatible raw snapshot storage, normalization, evidence extraction, source snapshot metadata, evidence items, background job rows, and audit events.
 
 Milestone 5 adds the search and entity-resolution boundary. `packages/search` owns reusable ranking, freshness, retrieval-context, and identity-resolution scoring. `apps/api/src/search` owns authenticated use cases for evidence search, prospect search, and similar-person search, with every query constrained by tenant and workspace before ranking.
 

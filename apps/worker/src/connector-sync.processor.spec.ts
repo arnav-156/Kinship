@@ -1,24 +1,27 @@
 import type { SourceConnector } from "@relationship/connectors";
+import { contentHash } from "@relationship/storage";
 import { describe, expect, it, vi } from "vitest";
 
 import { ConnectorSyncProcessor } from "./connector-sync.processor";
 
 describe("ConnectorSyncProcessor", () => {
   it("ingests connector evidence and atomically completes the run and leased job", async () => {
+    const rawText = "Public repository context";
+    const rawContentHash = contentHash(new TextEncoder().encode(rawText));
     const connector: SourceConnector = {
       sourceType: "github",
       checkPolicy: vi.fn().mockResolvedValue({ allowed: true, policyStatus: "allowed" }),
       fetch: vi.fn().mockResolvedValue({
-        contentHash: "hash_1",
+        contentHash: rawContentHash,
         contentType: "text/plain",
-        rawText: "Public repository context",
+        rawText,
         retrievedAt: "2026-10-08T10:00:00.000Z",
         sourceIdentifier: "https://github.com/example/project",
         sourceType: "github",
         sourceUrl: "https://github.com/example/project",
       }),
       normalize: vi.fn().mockResolvedValue({
-        contentHash: "hash_1",
+        contentHash: rawContentHash,
         metadata: {},
         sourceIdentifier: "https://github.com/example/project",
         sourceType: "github",
@@ -48,7 +51,12 @@ describe("ConnectorSyncProcessor", () => {
       retentionPolicy: { findUnique: vi.fn().mockResolvedValue(null) },
       sourceSnapshot: { upsert: vi.fn().mockResolvedValue({ id: "snapshot_1" }) },
     };
-    const processor = new ConnectorSyncProcessor(prisma as never, new Map([["github", connector]]));
+    const putSnapshot = vi.fn().mockResolvedValue({ key: "source-snapshots/snapshot_1" });
+    const processor = new ConnectorSyncProcessor(
+      prisma as never,
+      new Map([["github", connector]]),
+      { putSnapshot } as never,
+    );
 
     await processor.process(
       {
@@ -81,6 +89,23 @@ describe("ConnectorSyncProcessor", () => {
       }),
       where: expect.objectContaining({ id: "run_1", tenantId: "tenant_1" }),
     });
+    expect(putSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: new TextEncoder().encode(rawText),
+        contentHash: rawContentHash,
+        contentType: "text/plain",
+        tenantId: "tenant_1",
+        workspaceId: "workspace_1",
+      }),
+    );
+    expect(prisma.sourceSnapshot.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          contentType: "text/plain",
+          storageKey: "source-snapshots/snapshot_1",
+        }),
+      }),
+    );
     expect(updateMany).toHaveBeenLastCalledWith({
       data: expect.objectContaining({
         progress: expect.objectContaining({
@@ -113,6 +138,7 @@ describe("ConnectorSyncProcessor", () => {
         connectorRun: { updateMany: connectorRunUpdateMany },
       } as never,
       new Map([["github", connector]]),
+      { putSnapshot: vi.fn() } as never,
     );
 
     await expect(

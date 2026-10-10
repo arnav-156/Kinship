@@ -15,12 +15,14 @@ import { RelationshipBriefsModule } from "./relationship-briefs/relationship-bri
 import { RelationshipNotesModule } from "./relationship-notes/relationship-notes.module";
 import { RetentionModule } from "./retention/retention.module";
 import { SearchModule } from "./search/search.module";
+import { StorageModule } from "./storage/storage.module";
 import { WorkspacesModule } from "./workspaces/workspaces.module";
 
 @Module({
   controllers: [HealthController],
   imports: [
     DatabaseModule,
+    StorageModule,
     AdminModule,
     AiFeedbackModule,
     DraftsModule,

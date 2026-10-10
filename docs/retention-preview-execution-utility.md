@@ -29,7 +29,7 @@ corepack pnpm retention:admin cleanup `
   --confirm "DELETE EXPIRED EVIDENCE <workspace-id>"
 ```
 
-Execution refuses missing or mismatched confirmation and refuses when no records are due. It creates a retention-cleanup job, transactionally removes expired evidence before expired unreferenced source snapshots, marks the job complete, and records an operator-attributed audit event. A transaction failure marks the job failed and writes a failure audit event.
+Execution refuses missing or mismatched confirmation and refuses when no records are due. It creates a retention-cleanup job, transactionally removes expired evidence, deletes each expired unreferenced snapshot from object storage, removes its database row, marks the job complete, and records an operator-attributed audit event. An object-storage or database failure rolls back database cleanup, marks the job failed, and writes a failure audit event.
 
 If `--operator` is omitted, the executable uses `RETENTION_ADMIN_OPERATOR`, then the local Windows username. Production runbooks should pass a stable operator identity explicitly.
 

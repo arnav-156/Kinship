@@ -46,9 +46,22 @@ describe("HealthController", () => {
     } as never);
 
     await expect(controller.ready()).resolves.toMatchObject({
-      checks: { database: "degraded" },
+      checks: { database: "degraded", objectStorage: "degraded" },
       service: "api",
       status: "degraded",
+    });
+  });
+
+  it("requires both database and object storage for readiness", async () => {
+    const controller = new HealthController(
+      { $queryRaw: () => Promise.resolve([{ ok: 1 }]) } as never,
+      undefined,
+      { checkHealth: () => Promise.resolve() } as never,
+    );
+
+    await expect(controller.ready()).resolves.toMatchObject({
+      checks: { database: "ok", objectStorage: "ok" },
+      status: "ok",
     });
   });
 

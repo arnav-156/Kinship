@@ -39,6 +39,7 @@ const envSchema = z.object({
   S3_BUCKET: z.string().min(1),
   S3_ENDPOINT: z.string().url(),
   S3_FORCE_PATH_STYLE: booleanFromString.default("true"),
+  S3_REGION: z.string().min(1).default("us-east-1"),
   S3_SECRET_ACCESS_KEY: z.string().min(1),
   SCHEDULER_INTERVAL_MS: z.coerce.number().int().positive().default(300_000),
   WEB_PORT: z.coerce.number().int().positive().default(3000),

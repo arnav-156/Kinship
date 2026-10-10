@@ -6,6 +6,7 @@ import { createModelGateway, type ModelGatewayOptions } from "@relationship/ai";
 import { loadConfig } from "@relationship/config";
 import { createDefaultConnectorRegistry } from "@relationship/connectors";
 import { getPrismaClient } from "@relationship/db";
+import { createS3ObjectStorage } from "@relationship/storage";
 
 import { BriefGenerationProcessor } from "./brief-generation.processor";
 import { BriefGenerationWorker } from "./brief-generation.worker";
@@ -21,6 +22,7 @@ import { WORKER_MODEL_GATEWAY } from "./worker-ai.token";
 import { WORKER_CONNECTOR_REGISTRY } from "./worker-connectors.token";
 import { WORKER_PRISMA_CLIENT } from "./worker-prisma.token";
 import { WorkerService } from "./worker.service";
+import { WORKER_OBJECT_STORAGE } from "./worker-storage.token";
 
 @Module({
   providers: [
@@ -45,6 +47,20 @@ import { WorkerService } from "./worker.service";
     {
       provide: WORKER_CONNECTOR_REGISTRY,
       useFactory: createDefaultConnectorRegistry,
+    },
+    {
+      provide: WORKER_OBJECT_STORAGE,
+      useFactory: () => {
+        const config = loadConfig();
+        return createS3ObjectStorage({
+          accessKeyId: config.S3_ACCESS_KEY_ID,
+          bucket: config.S3_BUCKET,
+          endpoint: config.S3_ENDPOINT,
+          forcePathStyle: config.S3_FORCE_PATH_STYLE,
+          region: config.S3_REGION,
+          secretAccessKey: config.S3_SECRET_ACCESS_KEY,
+        });
+      },
     },
     {
       provide: WORKER_RUNTIME_OPTIONS,

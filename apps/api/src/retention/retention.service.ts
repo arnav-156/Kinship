@@ -3,10 +3,12 @@ import type { AuthenticatedPrincipal } from "@relationship/auth";
 import { Prisma, type PrismaClient, type RetentionPolicy } from "@relationship/db";
 import { canPerformWorkspaceAction } from "@relationship/policy";
 import { QueueName } from "@relationship/queue";
+import { type ObjectStoragePort, verifiedSnapshotObjectKeys } from "@relationship/storage";
 import { randomUUID } from "node:crypto";
 
 import { AuditService } from "../audit/audit.service";
 import { PRISMA_CLIENT } from "../database/prisma.token";
+import { OBJECT_STORAGE } from "../storage/object-storage.token";
 import type { UpdateRetentionPolicyDto } from "./dto";
 
 export const DEFAULT_RETENTION_DAYS = 365;
@@ -30,6 +32,7 @@ export class RetentionService {
   constructor(
     @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
     private readonly auditService: AuditService,
+    @Inject(OBJECT_STORAGE) private readonly objectStorage?: ObjectStoragePort,
   ) {}
 
   async summary(principal: AuthenticatedPrincipal, workspaceId: string) {
@@ -212,6 +215,19 @@ export class RetentionService {
         const evidence = await tx.evidenceItem.deleteMany({
           where: { retentionExpiresAt: { lte: now }, tenantId, workspaceId },
         });
+        if (this.objectStorage) {
+          const dueSnapshots = await tx.sourceSnapshot.findMany({
+            select: { rawContentHash: true, storageKey: true },
+            where: {
+              evidenceItems: { none: {} },
+              retentionExpiresAt: { lte: now },
+              tenantId,
+              workspaceId,
+            },
+          });
+          const storageKeys = verifiedSnapshotObjectKeys(dueSnapshots, { tenantId, workspaceId });
+          for (const key of storageKeys) await this.objectStorage.deleteObject(key);
+        }
         const snapshots = await tx.sourceSnapshot.deleteMany({
           where: {
             evidenceItems: { none: {} },

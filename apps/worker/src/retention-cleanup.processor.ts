@@ -1,12 +1,17 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { BackgroundJob, PrismaClient } from "@relationship/db";
 import { parseRetentionCleanupJobPayload } from "@relationship/queue";
+import { type ObjectStoragePort, verifiedSnapshotObjectKeys } from "@relationship/storage";
 
 import { WORKER_PRISMA_CLIENT } from "./worker-prisma.token";
+import { WORKER_OBJECT_STORAGE } from "./worker-storage.token";
 
 @Injectable()
 export class RetentionCleanupProcessor {
-  constructor(@Inject(WORKER_PRISMA_CLIENT) private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject(WORKER_PRISMA_CLIENT) private readonly prisma: PrismaClient,
+    @Inject(WORKER_OBJECT_STORAGE) private readonly objectStorage: ObjectStoragePort,
+  ) {}
 
   async process(job: BackgroundJob, workerId: string): Promise<void> {
     const payload = parseRetentionCleanupJobPayload(job.payload);
@@ -23,6 +28,20 @@ export class RetentionCleanupProcessor {
           workspaceId: payload.workspaceId,
         },
       });
+      const dueSnapshots = await tx.sourceSnapshot.findMany({
+        select: { rawContentHash: true, storageKey: true },
+        where: {
+          evidenceItems: { none: {} },
+          retentionExpiresAt: { lte: cutoffAt },
+          tenantId: payload.tenantId,
+          workspaceId: payload.workspaceId,
+        },
+      });
+      const storageKeys = verifiedSnapshotObjectKeys(dueSnapshots, {
+        tenantId: payload.tenantId,
+        workspaceId: payload.workspaceId,
+      });
+      for (const key of storageKeys) await this.objectStorage.deleteObject(key);
       const snapshots = await tx.sourceSnapshot.deleteMany({
         where: {
           evidenceItems: { none: {} },
@@ -33,6 +52,7 @@ export class RetentionCleanupProcessor {
       });
       const deleted = {
         evidenceItems: evidence.count,
+        storageObjects: storageKeys.length,
         sourceSnapshots: snapshots.count,
         total: evidence.count + snapshots.count,
       };

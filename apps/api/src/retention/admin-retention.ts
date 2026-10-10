@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@relationship/db";
 import { QueueName } from "@relationship/queue";
+import { type ObjectStoragePort, verifiedSnapshotObjectKeys } from "@relationship/storage";
 import { randomUUID } from "node:crypto";
 
 export const RETENTION_ADMIN_DATA_CLASS = "evidence";
@@ -14,6 +15,7 @@ export class RetentionAdminUtility {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly now: () => Date = () => new Date(),
+    private readonly objectStorage?: ObjectStoragePort,
   ) {}
 
   async preview(target: RetentionAdminTarget) {
@@ -140,6 +142,22 @@ export class RetentionAdminUtility {
             workspaceId: target.workspaceId,
           },
         });
+        if (this.objectStorage) {
+          const dueSnapshots = await tx.sourceSnapshot.findMany({
+            select: { rawContentHash: true, storageKey: true },
+            where: {
+              evidenceItems: { none: {} },
+              retentionExpiresAt: { lte: executedAt },
+              tenantId: target.tenantId,
+              workspaceId: target.workspaceId,
+            },
+          });
+          const storageKeys = verifiedSnapshotObjectKeys(dueSnapshots, {
+            tenantId: target.tenantId,
+            workspaceId: target.workspaceId,
+          });
+          for (const key of storageKeys) await this.objectStorage.deleteObject(key);
+        }
         const snapshots = await tx.sourceSnapshot.deleteMany({
           where: {
             evidenceItems: { none: {} },

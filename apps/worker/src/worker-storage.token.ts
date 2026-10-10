@@ -1,0 +1,1 @@
+export const WORKER_OBJECT_STORAGE = Symbol("WORKER_OBJECT_STORAGE");

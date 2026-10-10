@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { contentHash, snapshotObjectKey } from "@relationship/storage";
 
 import { RetentionAdminUtility } from "./admin-retention";
 
@@ -119,8 +120,15 @@ describe("RetentionAdminUtility", () => {
   });
 
   it("executes scoped cleanup transactionally and records job and audit evidence", async () => {
+    const rawContentHash = contentHash(new TextEncoder().encode("expired snapshot"));
+    const storageKey = snapshotObjectKey({
+      contentHash: rawContentHash,
+      tenantId: "tenant_1",
+      workspaceId: "workspace_1",
+    });
     const evidenceDelete = vi.fn().mockResolvedValue({ count: 2 });
     const snapshotDelete = vi.fn().mockResolvedValue({ count: 1 });
+    const deleteObject = vi.fn().mockResolvedValue(undefined);
     const completedJob = {
       id: "job_1",
       jobName: "retention.cleanup",
@@ -140,7 +148,10 @@ describe("RetentionAdminUtility", () => {
         $transaction: vi.fn(async (callback) =>
           callback({
             evidenceItem: { deleteMany: evidenceDelete },
-            sourceSnapshot: { deleteMany: snapshotDelete },
+            sourceSnapshot: {
+              deleteMany: snapshotDelete,
+              findMany: vi.fn().mockResolvedValue([{ rawContentHash, storageKey }]),
+            },
           }),
         ),
         auditEvent: { create: auditCreate },
@@ -171,6 +182,7 @@ describe("RetentionAdminUtility", () => {
         },
       } as never,
       () => now,
+      { deleteObject } as never,
     );
 
     const result = await utility.execute(
@@ -197,6 +209,7 @@ describe("RetentionAdminUtility", () => {
         workspaceId: "workspace_1",
       },
     });
+    expect(deleteObject).toHaveBeenCalledWith(storageKey);
     expect(backgroundJobCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         jobName: "retention.cleanup",

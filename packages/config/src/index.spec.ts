@@ -18,6 +18,7 @@ describe("loadConfig", () => {
       API_CORS_ORIGIN: [],
       RATE_LIMIT_MAX: 120,
       RATE_LIMIT_WINDOW_MS: 60_000,
+      S3_REGION: "us-east-1",
       SCHEDULER_INTERVAL_MS: 300_000,
       WORKER_LEASE_MS: 30_000,
       WORKER_POLL_INTERVAL_MS: 1_000,

@@ -25,6 +25,7 @@
     "@relationship/logger": "workspace:*",
     "@relationship/policy": "workspace:^",
     "@relationship/queue": "workspace:^",
+    "@relationship/storage": "workspace:^",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },

@@ -1,7 +1,9 @@
 import { Controller, Get, Header, Inject, Optional } from "@nestjs/common";
 import type { HealthStatus } from "@relationship/shared";
+import type { ObjectStoragePort } from "@relationship/storage";
 
 import { PRISMA_CLIENT } from "./database/prisma.token";
+import { OBJECT_STORAGE } from "./storage/object-storage.token";
 
 const version = "0.1.0";
 export const METRICS_SNAPSHOT = Symbol("METRICS_SNAPSHOT");
@@ -9,6 +11,7 @@ export const METRICS_SNAPSHOT = Symbol("METRICS_SNAPSHOT");
 type ReadinessStatus = HealthStatus & {
   checks: {
     database: "degraded" | "ok";
+    objectStorage: "degraded" | "ok";
   };
 };
 
@@ -45,6 +48,7 @@ export class HealthController {
   constructor(
     @Optional() @Inject(PRISMA_CLIENT) private readonly prisma?: ReadinessDatabaseClient,
     @Optional() @Inject(METRICS_SNAPSHOT) private readonly metricsSnapshot?: () => MetricsSnapshot,
+    @Optional() @Inject(OBJECT_STORAGE) private readonly objectStorage?: ObjectStoragePort,
   ) {}
 
   @Get()
@@ -87,14 +91,18 @@ export class HealthController {
 
   @Get("ready")
   async ready(): Promise<ReadinessStatus> {
-    const database = await this.checkDatabase();
+    const [database, objectStorage] = await Promise.all([
+      this.checkDatabase(),
+      this.checkObjectStorage(),
+    ]);
 
     return {
       checks: {
         database,
+        objectStorage,
       },
       service: "api",
-      status: database === "ok" ? "ok" : "degraded",
+      status: database === "ok" && objectStorage === "ok" ? "ok" : "degraded",
       timestamp: new Date().toISOString(),
       version,
     };
@@ -125,6 +133,16 @@ export class HealthController {
 
     try {
       await this.prisma.$queryRaw`SELECT 1`;
+      return "ok";
+    } catch {
+      return "degraded";
+    }
+  }
+
+  private async checkObjectStorage(): Promise<"degraded" | "ok"> {
+    if (!this.objectStorage) return "degraded";
+    try {
+      await this.objectStorage.checkHealth();
       return "ok";
     } catch {
       return "degraded";

@@ -29,6 +29,64 @@ describe("EvidenceService", () => {
     ).rejects.toThrow(ForbiddenException);
   });
 
+  it("stores an immutable raw snapshot before committing its database pointer", async () => {
+    const sourceSnapshotUpsert = vi.fn().mockResolvedValue({ id: "snapshot_1" });
+    const transaction = vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
+      callback(prisma),
+    );
+    const prisma = {
+      $transaction: transaction,
+      backgroundJob: {
+        update: vi.fn().mockResolvedValue({ id: "job_1" }),
+        upsert: vi.fn().mockResolvedValue({ id: "job_1" }),
+      },
+      entity: {
+        create: vi.fn().mockResolvedValue({ id: "entity_1" }),
+        findFirst: vi.fn().mockResolvedValue({ id: "entity_1" }),
+      },
+      evidenceItem: { create: vi.fn().mockResolvedValue({ id: "evidence_1" }) },
+      retentionPolicy: {
+        findUnique: vi.fn().mockResolvedValue({ enabled: true, retentionDays: 30 }),
+      },
+      sourceSnapshot: { upsert: sourceSnapshotUpsert },
+    };
+    const putSnapshot = vi.fn().mockResolvedValue({ key: "source-snapshots/v1/snapshot_1" });
+    const service = new EvidenceService(
+      prisma as never,
+      { record: vi.fn().mockResolvedValue(undefined) } as never,
+      { putSnapshot } as never,
+    );
+
+    await service.ingest(principal, {
+      context: { manualText: "User-provided relationship context" },
+      sourceIdentifier: "https://www.linkedin.com/in/example",
+      sourceType: "manual_linkedin_context",
+      workspaceId: "workspace_1",
+    });
+
+    expect(putSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: new TextEncoder().encode("User-provided relationship context"),
+        contentType: "text/plain",
+        policyStatus: "warn",
+        retentionExpiresAt: expect.any(Date),
+        tenantId: "tenant_1",
+        workspaceId: "workspace_1",
+      }),
+    );
+    expect(putSnapshot.mock.invocationCallOrder[0]).toBeLessThan(
+      transaction.mock.invocationCallOrder[0]!,
+    );
+    expect(sourceSnapshotUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          contentType: "text/plain",
+          storageKey: "source-snapshots/v1/snapshot_1",
+        }),
+      }),
+    );
+  });
+
   it("lists recent workspace ingestion jobs scoped by tenant and workspace", async () => {
     const findMany = vi.fn().mockResolvedValue([]);
     const service = new EvidenceService(

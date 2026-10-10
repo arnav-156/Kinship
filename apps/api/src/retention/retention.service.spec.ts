@@ -1,6 +1,7 @@
 import { ForbiddenException } from "@nestjs/common";
 import type { AuthenticatedPrincipal } from "@relationship/auth";
 import { describe, expect, it, vi } from "vitest";
+import { contentHash, snapshotObjectKey } from "@relationship/storage";
 
 import { RetentionService } from "./retention.service";
 
@@ -78,8 +79,15 @@ describe("RetentionService", () => {
   });
 
   it("deletes expired evidence before unreferenced snapshots and records a job", async () => {
+    const rawContentHash = contentHash(new TextEncoder().encode("expired snapshot"));
+    const storageKey = snapshotObjectKey({
+      contentHash: rawContentHash,
+      tenantId: "tenant_1",
+      workspaceId: "workspace_1",
+    });
     const evidenceDelete = vi.fn().mockResolvedValue({ count: 2 });
     const snapshotDelete = vi.fn().mockResolvedValue({ count: 1 });
+    const deleteObject = vi.fn().mockResolvedValue(undefined);
     const update = vi.fn().mockImplementation(({ data }) =>
       Promise.resolve({
         attempts: 1,
@@ -100,7 +108,10 @@ describe("RetentionService", () => {
         $transaction: vi.fn(async (callback) =>
           callback({
             evidenceItem: { deleteMany: evidenceDelete },
-            sourceSnapshot: { deleteMany: snapshotDelete },
+            sourceSnapshot: {
+              deleteMany: snapshotDelete,
+              findMany: vi.fn().mockResolvedValue([{ rawContentHash, storageKey }]),
+            },
           }),
         ),
         backgroundJob: {
@@ -110,12 +121,14 @@ describe("RetentionService", () => {
         retentionPolicy: { findUnique: vi.fn().mockResolvedValue(policy) },
       } as never,
       { record } as never,
+      { deleteObject } as never,
     );
 
     const result = await service.execute(owner, "workspace_1");
 
     expect(evidenceDelete).toHaveBeenCalledOnce();
     expect(snapshotDelete).toHaveBeenCalledOnce();
+    expect(deleteObject).toHaveBeenCalledWith(storageKey);
     expect(result).toMatchObject({
       progress: {
         deleted: { evidenceItems: 2, sourceSnapshots: 1, total: 3 },

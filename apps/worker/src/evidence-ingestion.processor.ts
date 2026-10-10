@@ -8,9 +8,11 @@ import {
   QueueName,
   type EvidenceIngestionJobPayload,
 } from "@relationship/queue";
+import type { ObjectStoragePort } from "@relationship/storage";
 
 import { WORKER_CONNECTOR_REGISTRY } from "./worker-connectors.token";
 import { WORKER_PRISMA_CLIENT } from "./worker-prisma.token";
+import { WORKER_OBJECT_STORAGE } from "./worker-storage.token";
 
 @Injectable()
 export class EvidenceIngestionProcessor {
@@ -18,6 +20,7 @@ export class EvidenceIngestionProcessor {
     @Inject(WORKER_PRISMA_CLIENT) private readonly prisma: PrismaClient,
     @Inject(WORKER_CONNECTOR_REGISTRY)
     private readonly connectorRegistry: Map<SourceType, SourceConnector>,
+    @Inject(WORKER_OBJECT_STORAGE) private readonly objectStorage: ObjectStoragePort,
   ) {}
 
   async process(job: BackgroundJob, workerId: string): Promise<void> {
@@ -91,27 +94,40 @@ export class EvidenceIngestionProcessor {
       throw new Error("Connector returned no evidence");
     }
 
+    const retrievalTimestamp = new Date(fetchResult.retrievedAt);
+    const retentionPolicy = await this.prisma.retentionPolicy.findUnique({
+      where: {
+        tenantId_workspaceId_dataClass: {
+          dataClass: "evidence",
+          tenantId: payload.tenantId,
+          workspaceId: payload.workspaceId,
+        },
+      },
+    });
+    const retentionExpiresAt = retentionPolicy?.enabled
+      ? new Date(
+          retrievalTimestamp.getTime() + retentionPolicy.retentionDays * 24 * 60 * 60 * 1_000,
+        )
+      : null;
+    const storedSnapshot = await this.objectStorage.putSnapshot({
+      body: new TextEncoder().encode(fetchResult.rawText),
+      contentHash: fetchResult.contentHash,
+      contentType: fetchResult.contentType,
+      policyStatus: policy.policyStatus,
+      retentionExpiresAt,
+      retrievalTimestamp,
+      sourceType: fetchResult.sourceType,
+      tenantId: payload.tenantId,
+      workspaceId: payload.workspaceId,
+    });
+
     await this.updateProgress(job.id, workerId, 80, "saving_evidence");
     await this.prisma.$transaction(async (tx) => {
       const entityId = await this.resolveEntityId(tx, payload);
-      const retentionPolicy = await tx.retentionPolicy.findUnique({
-        where: {
-          tenantId_workspaceId_dataClass: {
-            dataClass: "evidence",
-            tenantId: payload.tenantId,
-            workspaceId: payload.workspaceId,
-          },
-        },
-      });
-      const retrievalTimestamp = new Date(fetchResult.retrievedAt);
-      const retentionExpiresAt = retentionPolicy?.enabled
-        ? new Date(
-            retrievalTimestamp.getTime() + retentionPolicy.retentionDays * 24 * 60 * 60 * 1_000,
-          )
-        : null;
 
       const snapshot = await tx.sourceSnapshot.upsert({
         create: {
+          contentType: fetchResult.contentType,
           policyStatus: policy.policyStatus,
           rawContentHash: fetchResult.contentHash,
           retentionExpiresAt,
@@ -119,13 +135,16 @@ export class EvidenceIngestionProcessor {
           sourceIdentifier: fetchResult.sourceIdentifier,
           sourceType: fetchResult.sourceType as SourceType,
           sourceUrl: fetchResult.sourceUrl,
+          storageKey: storedSnapshot.key,
           tenantId: payload.tenantId,
           workspaceId: payload.workspaceId,
         },
         update: {
+          contentType: fetchResult.contentType,
           policyStatus: policy.policyStatus,
           retentionExpiresAt,
           retrievalTimestamp,
+          storageKey: storedSnapshot.key,
         },
         where: {
           tenantId_workspaceId_rawContentHash: {

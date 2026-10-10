@@ -19,10 +19,12 @@ import type { AuthenticatedPrincipal } from "@relationship/auth";
 import type { Prisma, PrismaClient, SourceType } from "@relationship/db";
 import { QueueName, type EvidenceIngestionJobPayload } from "@relationship/queue";
 import { canPerformWorkspaceAction } from "@relationship/policy";
+import type { ObjectStoragePort } from "@relationship/storage";
 
 import { AuditService } from "../audit/audit.service";
 import { PRISMA_CLIENT } from "../database/prisma.token";
 import { calculateRetentionExpiration } from "../retention/retention.utils";
+import { OBJECT_STORAGE } from "../storage/object-storage.token";
 import type {
   AnalyzeUrlDto,
   EvidenceSourceType,
@@ -71,6 +73,7 @@ export class EvidenceService {
   constructor(
     @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
     private readonly auditService: AuditService,
+    @Inject(OBJECT_STORAGE) private readonly objectStorage?: ObjectStoragePort,
   ) {}
 
   analyzeUrl(principal: AuthenticatedPrincipal, input: AnalyzeUrlDto) {
@@ -130,6 +133,30 @@ export class EvidenceService {
       if (evidenceResults.length === 0) {
         throw new BadRequestException("Connector returned no evidence");
       }
+
+      const retrievalTimestamp = new Date(fetchResult.retrievedAt);
+      const retentionPolicy = await this.prisma.retentionPolicy.findUnique({
+        where: {
+          tenantId_workspaceId_dataClass: {
+            dataClass: "evidence",
+            tenantId: principal.tenantId,
+            workspaceId: input.workspaceId,
+          },
+        },
+      });
+      const retentionExpiresAt = calculateRetentionExpiration(retrievalTimestamp, retentionPolicy);
+      if (!this.objectStorage) throw new Error("Object storage is not configured");
+      const storedSnapshot = await this.objectStorage.putSnapshot({
+        body: new TextEncoder().encode(fetchResult.rawText),
+        contentHash: fetchResult.contentHash,
+        contentType: fetchResult.contentType,
+        policyStatus: policy.policyStatus,
+        retentionExpiresAt,
+        retrievalTimestamp,
+        sourceType: fetchResult.sourceType,
+        tenantId: principal.tenantId,
+        workspaceId: input.workspaceId,
+      });
 
       return await this.prisma.$transaction(async (tx) => {
         const job = trackingJobId
@@ -199,22 +226,9 @@ export class EvidenceService {
           throw new NotFoundException("Entity was not found in this workspace");
         }
 
-        const retentionPolicy = await tx.retentionPolicy.findUnique({
-          where: {
-            tenantId_workspaceId_dataClass: {
-              dataClass: "evidence",
-              tenantId: principal.tenantId,
-              workspaceId: input.workspaceId,
-            },
-          },
-        });
-        const retrievalTimestamp = new Date(fetchResult.retrievedAt);
-        const retentionExpiresAt = calculateRetentionExpiration(
-          retrievalTimestamp,
-          retentionPolicy,
-        );
         const snapshot = await tx.sourceSnapshot.upsert({
           create: {
+            contentType: fetchResult.contentType,
             policyStatus: policy.policyStatus,
             rawContentHash: fetchResult.contentHash,
             retentionExpiresAt,
@@ -222,13 +236,16 @@ export class EvidenceService {
             sourceIdentifier: fetchResult.sourceIdentifier,
             sourceType: fetchResult.sourceType as SourceType,
             sourceUrl: fetchResult.sourceUrl,
+            storageKey: storedSnapshot.key,
             tenantId: principal.tenantId,
             workspaceId: input.workspaceId,
           },
           update: {
+            contentType: fetchResult.contentType,
             policyStatus: policy.policyStatus,
             retentionExpiresAt,
             retrievalTimestamp,
+            storageKey: storedSnapshot.key,
           },
           where: {
             tenantId_workspaceId_rawContentHash: {

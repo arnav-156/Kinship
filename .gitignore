@@ -13,6 +13,7 @@ test-results/
 /storage/
 /logs/
 /.pnpm-store/
+/.npm-cache/
 /.git-work/
 tmp/
 _tmp_*
