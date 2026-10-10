@@ -72,7 +72,7 @@ const backgroundJobStatusSelect = {
 export class EvidenceService {
   constructor(
     @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
-    private readonly auditService: AuditService,
+    @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(OBJECT_STORAGE) private readonly objectStorage?: ObjectStoragePort,
   ) {}
 
